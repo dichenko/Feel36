@@ -91,7 +91,7 @@ function App() {
 
   const welcomeStories = [
     {
-      title: "Добро пожаловать в 36Q",
+      title: "Добро пожаловать в FeelMe36",
       text: "Перед вами набор из 36 вопросов, призванных сблизить вас и вашего партнера. Вопросы разбиты на три блока, с каждым блоком вопросы все более глубокие и откровенные."
     },
     {
@@ -175,7 +175,7 @@ function App() {
               <div className="flex items-center gap-3">
                 <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
                 <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">36Q</h1>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
                   <p className="text-sm text-rose-600/80">36 вопросов, чтобы влюбить кого угодно</p>
                 </div>
               </div>
@@ -255,7 +255,7 @@ function App() {
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">36Q</h1>
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
           </div>
           <div className="text-sm font-medium text-rose-600/80">
             Блок {currentSet + 1} из {totalSets}

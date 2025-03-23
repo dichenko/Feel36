@@ -4,7 +4,7 @@ globs:
 alwaysApply: true
 ---
 
-Это прилолжение mini-app для Telegram
+Это прилолжение mini-app для Telegram называется FeelMe36
 Деплой на Vercel
 Все ENV находятся на Vercel
 БД - Supabase, подклчена через Vercel
