@@ -152,35 +152,8 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-[430px] relative">
-          {/* Progress indicators */}
-          <div className="absolute top-6 left-0 right-0 z-10 flex justify-center gap-1.5">
-            {welcomeStories.map((_, index) => (
-              <div
-                key={index}
-                className={`h-1 rounded-full transition-all duration-300 ${
-                  index === currentStory 
-                    ? "w-12 bg-rose-400" 
-                    : index < currentStory 
-                      ? "w-12 bg-rose-300" 
-                      : "w-12 bg-rose-200"
-                }`}
-              />
-            ))}
-          </div>
-
           {/* Story card */}
           <div className="bg-white/95 backdrop-blur-sm rounded-3xl card-shadow overflow-hidden aspect-[9/16] relative">
-            {/* Header with logo */}
-            <div className="absolute top-0 left-0 right-0 p-6 bg-gradient-to-b from-white via-white/80 to-transparent">
-              <div className="flex items-center gap-3">
-                <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
-                <div>
-                  <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
-                  <p className="text-sm text-rose-600/80">36 вопросов, чтобы влюбить кого угодно</p>
-                </div>
-              </div>
-            </div>
-
             {/* Navigation buttons */}
             <button
               onClick={prevStory}
@@ -202,22 +175,49 @@ function App() {
             </button>
 
             {/* Content */}
-            <div className="h-full flex flex-col justify-center p-8 text-center pt-28">
-              <h2 className="text-2xl font-semibold text-rose-900 mb-6">
-                {welcomeStories[currentStory].title}
-              </h2>
-              <p className="text-lg text-rose-800/90 mb-8 leading-relaxed">
-                {welcomeStories[currentStory].text}
-              </p>
+            <div className="h-full flex flex-col justify-between p-8">
+              <div className="flex flex-col items-center text-center mt-12">
+                <h2 className="text-2xl font-semibold text-rose-900 mb-6">
+                  {welcomeStories[currentStory].title}
+                </h2>
+                <p className="text-lg text-rose-800/90 mb-8 leading-relaxed">
+                  {welcomeStories[currentStory].text}
+                </p>
 
-              {currentStory === welcomeStories.length - 1 && (
-                <button
-                  onClick={() => setIsStarted(true)}
-                  className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                >
-                  Готовы начать
-                </button>
-              )}
+                {currentStory === welcomeStories.length - 1 && (
+                  <button
+                    onClick={() => setIsStarted(true)}
+                    className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Готовы начать
+                  </button>
+                )}
+              </div>
+              
+              <div className="w-full flex flex-col items-center">
+                {/* Heart icon with text */}
+                <div className="flex items-center justify-center gap-2 mb-6">
+                  <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
+                </div>
+                <p className="text-sm text-rose-600/80 mb-5">36 вопросов, чтобы влюбить кого угодно</p>
+                
+                {/* Progress indicators moved to bottom */}
+                <div className="flex justify-center gap-1.5">
+                  {welcomeStories.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 rounded-full transition-all duration-300 ${
+                        index === currentStory 
+                          ? "w-12 bg-rose-400" 
+                          : index < currentStory 
+                            ? "w-12 bg-rose-300" 
+                            : "w-12 bg-rose-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
