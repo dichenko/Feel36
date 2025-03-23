@@ -13,6 +13,9 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       output: {
+        entryFileNames: '[name].js',
+        chunkFileNames: '[name].js',
+        assetFileNames: '[name].[ext]',
         manualChunks: undefined,
       },
     },
@@ -24,4 +27,5 @@ export default defineConfig({
       'Content-Type': 'application/javascript; charset=utf-8',
     },
   },
+  base: './',
 });

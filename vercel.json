@@ -14,9 +14,33 @@
       "headers": { "content-type": "application/javascript" }
     },
     { 
+      "src": "/(.*)\\.(jsx|ts|tsx|mjs)$",
+      "headers": { "content-type": "application/javascript" }
+    },
+    { 
       "src": "/(.*)\\.css$", 
       "headers": { "content-type": "text/css" }
     },
     { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)\\.js",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.mjs",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        }
+      ]
+    }
   ]
 } 
