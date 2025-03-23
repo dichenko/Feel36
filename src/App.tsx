@@ -105,7 +105,7 @@ function App() {
   ];
 
   const totalSets = 3;
-  const questionsPerSet = 12;
+  const questionsPerSet =  12;
   const currentSetQuestions = questions.slice(
     currentSet * questionsPerSet,
     (currentSet + 1) * questionsPerSet
