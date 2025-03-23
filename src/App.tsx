@@ -113,7 +113,7 @@ function App() {
 
   const handleNext = () => {
     if (currentQuestion < questionsPerSet - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+      setCurrentQuestion(currentQuestion +  1);
     } else if (currentSet < totalSets - 1) {
       setShowEyeContact(true);
     } else {
