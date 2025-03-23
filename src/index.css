@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#FFF5F5] text-[#2D3748];
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 30c-2-2-4-4-4-8 0-4 2-6 4-8s4-4 8-4c4 0 6 2 8 4s4 4 4 8c0 4-2 6-4 8s-4 4-8 4c-4 0-6-2-8-4z' fill='%23FED7D7' fill-opacity='0.4' fill-rule='evenodd'/%3E%3C/svg%3E");
+  }
+}
+
+.card-shadow {
+  box-shadow: 0 0 40px rgba(247, 186, 186, 0.15);
+}

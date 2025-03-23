@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+Это прилолжение mini-app для Telegram
+Деплой на Vercel
+Все ENV находятся на Vercel
+БД - Supabase, подклчена через Vercel
+Репозиторий: https://github.com/dichenko/Feel36.git
