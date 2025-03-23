@@ -1,6 +1,48 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Heart, Eye, ChevronRight, RotateCcw, ArrowLeft, ArrowRight } from 'lucide-react';
 import { questions } from './questions';
+
+// Определяем тип для Telegram WebApp
+declare global {
+  interface Window {
+    Telegram: {
+      WebApp: {
+        ready: () => void;
+        expand: () => void;
+        close: () => void;
+        BackButton: {
+          show: () => void;
+          hide: () => void;
+          onClick: (callback: () => void) => void;
+          isVisible: boolean;
+        };
+        MainButton: {
+          text: string;
+          color: string;
+          textColor: string;
+          isVisible: boolean;
+          isActive: boolean;
+          show: () => void;
+          hide: () => void;
+          enable: () => void;
+          disable: () => void;
+          onClick: (callback: () => void) => void;
+          offClick: (callback: () => void) => void;
+          showProgress: (leaveActive: boolean) => void;
+          hideProgress: () => void;
+        };
+        themeParams: {
+          bg_color: string;
+          text_color: string;
+          hint_color: string;
+          link_color: string;
+          button_color: string;
+          button_text_color: string;
+        };
+      };
+    };
+  }
+}
 
 function App() {
   const [isStarted, setIsStarted] = useState(false);
@@ -9,6 +51,43 @@ function App() {
   const [showEyeContact, setShowEyeContact] = useState(false);
   const [showFinalEyeContact, setShowFinalEyeContact] = useState(false);
   const [currentStory, setCurrentStory] = useState(0);
+
+  // Инициализация Telegram Mini App
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+  }, []);
+
+  // Управление кнопкой "Назад" в Telegram
+  useEffect(() => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) return;
+
+    if (isStarted && !showEyeContact && !showFinalEyeContact) {
+      tg.BackButton.show();
+      tg.BackButton.onClick(() => {
+        if (currentQuestion > 0) {
+          setCurrentQuestion(currentQuestion - 1);
+        } else if (currentSet > 0) {
+          setCurrentSet(currentSet - 1);
+          setCurrentQuestion(questions.length / 3 - 1);
+        } else {
+          setIsStarted(false);
+        }
+      });
+    } else {
+      tg.BackButton.hide();
+    }
+
+    // Очистка обработчика событий кнопки "Назад"
+    return () => {
+      // Вместо offClick, который не существует, используем onClick с пустой функцией
+      tg.BackButton.onClick(() => {});
+    };
+  }, [isStarted, currentSet, currentQuestion, showEyeContact, showFinalEyeContact]);
 
   const welcomeStories = [
     {
