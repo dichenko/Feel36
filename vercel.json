@@ -3,7 +3,7 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ],
-  "buildCommand": "next build",
-  "devCommand": "next dev",
+  "buildCommand": "vite build",
+  "devCommand": "vite",
   "installCommand": "npm install"
 } 
