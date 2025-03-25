@@ -85,37 +85,66 @@ export const getUtmParams = (): Record<string, string> => {
       }
     }
 
-    // Если startapp параметр найден, разбираем его на UTM-метки
+    // Если startapp параметр найден, обрабатываем его
     if (startParam) {
-      // Проверяем, содержит ли параметр startapp уже готовые UTM-метки в формате utm_source=value&utm_medium=value
-      if (startParam.includes('utm_')) {
-        // Разбираем строку параметров
-        const utmPairs = startParam.split('&');
+      try {
+        // Важно: Telegram не обрабатывает специальные символы в startapp должным образом,
+        // поэтому мы должны сначала декодировать строку и затем разобрать ее
+        const decodedParam = decodeURIComponent(startParam);
         
-        utmPairs.forEach(pair => {
-          const parts = pair.split('=');
-          if (parts.length === 2) {
-            const key = parts[0].trim();
-            const value = parts[1].trim();
+        if (isDevMode) {
+          console.log('Декодированный startapp параметр:', decodedParam);
+        }
+        
+        // Проверяем, содержит ли параметр startapp UTM-метки
+        if (decodedParam.includes('utm_')) {
+          // Сначала проверяем, может ли это быть строка в формате параметров URL
+          // Мы должны обработать два случая:
+          // 1. utm_source=instagram&utm_medium=post&utm_campaign=promo
+          // 2. ?utm_source=instagram&utm_medium=post&utm_campaign=promo
+          
+          let paramString = decodedParam;
+          // Если строка начинается с ? - удаляем его
+          if (paramString.startsWith('?')) {
+            paramString = paramString.substring(1);
+          }
+          
+          // Разбиваем строку на пары ключ=значение
+          const pairs = paramString.split('&');
+          
+          if (isDevMode) {
+            console.log('Разбитые пары параметров:', pairs);
+          }
+          
+          for (const pair of pairs) {
+            const [key, value] = pair.split('=');
             
-            // Сохраняем только валидные UTM-метки
-            if (key.startsWith('utm_')) {
+            if (key && value && key.startsWith('utm_')) {
+              // Декодируем значение для обработки специальных символов
               utmParams[key] = decodeURIComponent(value);
+              
               if (isDevMode) {
                 console.log(`Получена UTM-метка: ${key}=${utmParams[key]}`);
               }
             }
           }
-        });
-      } 
-      // Если startapp - простое значение без utm_ префикса, используем его как utm_source
-      else {
-        // Если startapp содержит только значение, используем его как utm_source
-        utmParams['utm_source'] = startParam;
-        
-        if (isDevMode) {
-          console.log('Используем значение startapp как utm_source:', startParam);
         }
+        // Если startapp не содержит utm_ префикс, используем его как utm_source
+        else {
+          utmParams['utm_source'] = decodedParam;
+          
+          if (isDevMode) {
+            console.log('Используем значение startapp как utm_source:', decodedParam);
+          }
+        }
+      } catch (error) {
+        // В случае ошибки разбора, используем startapp как utm_source
+        if (isDevMode) {
+          console.error('Ошибка при разборе startapp параметра:', error);
+          console.log('Используем оригинальное значение как utm_source');
+        }
+        
+        utmParams['utm_source'] = startParam;
       }
     }
 

@@ -12,13 +12,44 @@
 
 ### Формат ссылки:
 ```
-https://t.me/FeelMe36_bot/feelme36?startapp=utm_source=instagram&utm_medium=post&utm_campaign=spring_promo
+https://t.me/FeelMe36_bot/feelme36?startapp=utm_source%3Dinstagram%26utm_medium%3Dpost%26utm_campaign%3Dspring_promo
+```
+
+### ВАЖНО - URL-кодирование:
+Обратите внимание, что символы `=` и `&` в параметре `startapp` необходимо URL-кодировать:
+- `=` должен быть заменен на `%3D`
+- `&` должен быть заменен на `%26`
+
+Правильно:
+```
+?startapp=utm_source%3Dinstagram%26utm_medium%3Dpost
+```
+
+Неправильно (может работать нестабильно):
+```
+?startapp=utm_source=instagram&utm_medium=post
 ```
 
 ### Объяснение:
 - `https://t.me/FeelMe36_bot/feelme36` - базовый URL Mini App
 - `?startapp=` - параметр Telegram для передачи данных в Mini App
-- `utm_source=instagram&utm_medium=post&utm_campaign=spring_promo` - UTM-метки, разделенные символом `&`
+- `utm_source%3Dinstagram%26utm_medium%3Dpost%26utm_campaign%3Dspring_promo` - URL-кодированные UTM-метки
+
+### Генератор UTM-ссылок:
+
+Для создания корректных ссылок с UTM-метками, выполните следующие шаги:
+1. Создайте UTM-строку в формате `utm_source=instagram&utm_medium=post&utm_campaign=spring_promo`
+2. URL-кодируйте эту строку (можно использовать функцию `encodeURIComponent()` в JavaScript или онлайн-инструменты)
+3. Добавьте результат после `?startapp=`
+
+Пример JavaScript-кода для генерации ссылки:
+```javascript
+const baseUrl = 'https://t.me/FeelMe36_bot/feelme36';
+const utmParams = 'utm_source=instagram&utm_medium=post&utm_campaign=spring_promo';
+const encodedParams = encodeURIComponent(utmParams);
+const fullUrl = `${baseUrl}?startapp=${encodedParams}`;
+console.log(fullUrl);
+```
 
 ### Поддерживаемые UTM-параметры:
 - `utm_source` - источник трафика (Instagram, Facebook, VK и т.д.)
