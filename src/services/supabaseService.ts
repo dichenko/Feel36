@@ -18,12 +18,8 @@ export interface UserVisit {
 const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string;
 const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Supabase credentials are not set in environment variables');
-  console.error('Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel settings');
-}
-
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Создаем клиент Supabase только если есть необходимые переменные окружения
+const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
 
 // Получение UTM-меток из URL
 export const getUtmParams = (): Record<string, string> => {
@@ -38,10 +34,8 @@ export const getUtmParams = (): Record<string, string> => {
       }
     });
     
-    console.log('UTM params:', utmParams);
     return utmParams;
-  } catch (error) {
-    console.error('Error getting UTM params:', error);
+  } catch {
     return {};
   }
 };
@@ -50,7 +44,6 @@ export const getUtmParams = (): Record<string, string> => {
 export const getTelegramUserData = (): Record<string, any> => {
   try {
     if (!window.Telegram?.WebApp) {
-      console.warn('Telegram WebApp is not available');
       return {};
     }
     
@@ -59,7 +52,6 @@ export const getTelegramUserData = (): Record<string, any> => {
     
     // Безопасное получение initData
     const initDataStr = tg.initData || '';
-    console.log('Telegram initData:', initDataStr);
     
     if (initDataStr) {
       try {
@@ -71,9 +63,8 @@ export const getTelegramUserData = (): Record<string, any> => {
         if (userStr) {
           try {
             userData = JSON.parse(userStr);
-            console.log('Parsed user data:', userData);
-          } catch (e) {
-            console.error('Failed to parse user data:', e);
+          } catch {
+            // Игнорируем ошибки парсинга
           }
         }
         
@@ -83,20 +74,18 @@ export const getTelegramUserData = (): Record<string, any> => {
             userData[key] = value;
           }
         });
-      } catch (e) {
-        console.error('Failed to parse initData:', e);
+      } catch {
+        // Игнорируем ошибки парсинга
       }
     }
 
     // Добавляем параметры темы
     if (tg.themeParams) {
       userData.themeParams = tg.themeParams;
-      console.log('Theme params:', tg.themeParams);
     }
     
     return userData;
-  } catch (error) {
-    console.error('Error getting Telegram user data:', error);
+  } catch {
     return {};
   }
 };
@@ -105,11 +94,8 @@ export const getTelegramUserData = (): Record<string, any> => {
 export const getTelegramUserId = (): string => {
   try {
     const userData = getTelegramUserData();
-    const userId = userData?.id?.toString() || '';
-    console.log('Telegram user ID:', userId);
-    return userId;
-  } catch (e) {
-    console.error('Failed to get Telegram user ID:', e);
+    return userData?.id?.toString() || '';
+  } catch {
     return '';
   }
 };
@@ -118,11 +104,8 @@ export const getTelegramUserId = (): string => {
 export const getVisitCount = (): number => {
   try {
     const count = localStorage.getItem('visit_count');
-    const parsedCount = count ? parseInt(count, 10) : 0;
-    console.log('Current visit count:', parsedCount);
-    return parsedCount;
-  } catch (error) {
-    console.error('Error getting visit count:', error);
+    return count ? parseInt(count, 10) : 0;
+  } catch {
     return 0;
   }
 };
@@ -133,59 +116,54 @@ export const incrementVisitCount = (): number => {
     const currentCount = getVisitCount();
     const newCount = currentCount + 1;
     localStorage.setItem('visit_count', newCount.toString());
-    console.log('Incremented visit count:', newCount);
     return newCount;
-  } catch (error) {
-    console.error('Error incrementing visit count:', error);
+  } catch {
     return 1;
   }
 };
 
 // Сохранить информацию о визите в Supabase
 export const saveVisitInfo = async (): Promise<void> => {
-  try {
-    console.log('Starting to save visit info...');
-    
-    // Получаем ID пользователя Telegram
-    const tgId = getTelegramUserId();
-    
-    // Если ID не найден, не сохраняем данные
-    if (!tgId) {
-      console.warn('Telegram user ID not found. Visit data not saved.');
-      return;
-    }
-    
-    // Получаем UTM-метки
-    const utmParams = getUtmParams();
-    
-    // Получаем данные пользователя
-    const userData = getTelegramUserData();
-    
-    // Увеличиваем счетчик визитов
-    const visitCount = incrementVisitCount();
-    
-    // Создаем объект для вставки в БД
-    const visitData: UserVisit = {
-      tg_id: tgId,
-      timestamp: new Date().toISOString(),
-      visit_count: visitCount,
-      user_data: userData,
-      ...utmParams
-    };
-    
-    console.log('Prepared visit data:', visitData);
-    
-    // Вставляем данные в таблицу user_visits
-    const { error } = await supabase
-      .from('user_visits')
-      .insert([visitData]);
-    
-    if (error) {
-      console.error('Error saving visit info:', error);
-    } else {
-      console.log('Visit info saved successfully');
-    }
-  } catch (error) {
-    console.error('Failed to save visit info:', error);
+  // Если Supabase не инициализирован, просто игнорируем сохранение
+  if (!supabase) {
+    return;
   }
+
+  // Запускаем сохранение в фоновом режиме
+  setTimeout(async () => {
+    try {
+      // Получаем ID пользователя Telegram
+      const tgId = getTelegramUserId();
+      
+      // Если ID не найден, не сохраняем данные
+      if (!tgId) {
+        return;
+      }
+      
+      // Получаем UTM-метки
+      const utmParams = getUtmParams();
+      
+      // Получаем данные пользователя
+      const userData = getTelegramUserData();
+      
+      // Увеличиваем счетчик визитов
+      const visitCount = incrementVisitCount();
+      
+      // Создаем объект для вставки в БД
+      const visitData: UserVisit = {
+        tg_id: tgId,
+        timestamp: new Date().toISOString(),
+        visit_count: visitCount,
+        user_data: userData,
+        ...utmParams
+      };
+      
+      // Вставляем данные в таблицу user_visits
+      await supabase
+        .from('user_visits')
+        .insert([visitData]);
+    } catch {
+      // Игнорируем все ошибки при сохранении
+    }
+  }, 0); // Запускаем в следующем тике event loop
 }; 
