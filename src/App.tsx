@@ -67,26 +67,42 @@ function App() {
     const tg = window.Telegram?.WebApp;
     if (!tg) return;
 
+    // Проверяем поддержку BackButton
+    if (!tg.BackButton) {
+      return;
+    }
+
     if (isStarted && !showEyeContact && !showFinalEyeContact) {
-      tg.BackButton.show();
-      tg.BackButton.onClick(() => {
-        if (currentQuestion > 0) {
-          setCurrentQuestion(currentQuestion - 1);
-        } else if (currentSet > 0) {
-          setCurrentSet(currentSet - 1);
-          setCurrentQuestion(questions.length / 3 - 1);
-        } else {
-          setIsStarted(false);
-        }
-      });
+      try {
+        tg.BackButton.show();
+        tg.BackButton.onClick(() => {
+          if (currentQuestion > 0) {
+            setCurrentQuestion(currentQuestion - 1);
+          } else if (currentSet > 0) {
+            setCurrentSet(currentSet - 1);
+            setCurrentQuestion(questions.length / 3 - 1);
+          } else {
+            setIsStarted(false);
+          }
+        });
+      } catch (error) {
+        // Игнорируем ошибки с BackButton
+      }
     } else {
-      tg.BackButton.hide();
+      try {
+        tg.BackButton.hide();
+      } catch (error) {
+        // Игнорируем ошибки с BackButton
+      }
     }
 
     // Очистка обработчика событий кнопки "Назад"
     return () => {
-      // Вместо offClick, который не существует, используем onClick с пустой функцией
-      tg.BackButton.onClick(() => {});
+      try {
+        tg.BackButton.onClick(() => {});
+      } catch (error) {
+        // Игнорируем ошибки с BackButton
+      }
     };
   }, [isStarted, currentSet, currentQuestion, showEyeContact, showFinalEyeContact]);
 
