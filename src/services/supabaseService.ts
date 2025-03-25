@@ -99,11 +99,69 @@ export const getUtmParams = (): Record<string, string> => {
 
     // Если нашли startapp параметр, обрабатываем его
     if (startParam) {
-      try {
-        // В Telegram Mini App startapp может содержать сразу все UTM-метки в одной строке
-        // Если это строка в формате utm_source=x&utm_medium=y&..., пробуем распарсить
-        if (startParam.includes('utm_') || startParam.includes('&')) {
-          // Декодируем параметр и создаем URLSearchParams объект
+      // Обработка ситуации, когда startapp содержит несколько UTM-параметров, но не в формате запроса
+      // Пример: startapp=utm_source=instagram&utm_medium=post (без знака вопроса в начале)
+      if (startParam.includes('utm_')) {
+        if (isDevMode) {
+          console.log('startapp contains UTM parameters, trying to parse');
+        }
+
+        // Обработка нескольких UTM-параметров в startapp 
+        const utmPairs = startParam.split('&');
+        
+        if (isDevMode) {
+          console.log('Parsed UTM pairs:', utmPairs);
+        }
+        
+        utmPairs.forEach(pair => {
+          const parts = pair.split('=');
+          if (parts.length === 2) {
+            const key = parts[0].trim();
+            const value = parts[1].trim();
+            
+            // Проверяем, является ли это UTM-параметром
+            if (key.startsWith('utm_')) {
+              utmParams[key] = decodeURIComponent(value);
+              if (isDevMode) {
+                console.log(`Parsed UTM parameter: ${key}=${utmParams[key]}`);
+              }
+            }
+          }
+        });
+        
+        // Если мы не смогли распарсить ни один UTM-параметр, попробуем другие методы
+        if (Object.keys(utmParams).length === 0) {
+          try {
+            // Проверим, может быть startapp содержит строку запроса без ?
+            const startParamsDecoded = decodeURIComponent(startParam);
+            
+            // Добавляем ? в начало, если его нет, чтобы URLSearchParams мог корректно распарсить
+            const queryString = startParamsDecoded.startsWith('?') ? 
+              startParamsDecoded : `?${startParamsDecoded}`;
+            
+            const startParamsObj = new URLSearchParams(queryString);
+            
+            ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
+              const value = startParamsObj.get(`utm_${param}`);
+              if (value) {
+                utmParams[`utm_${param}`] = value;
+              }
+            });
+            
+            if (isDevMode && Object.keys(utmParams).length > 0) {
+              console.log('Parsed UTM params from startapp using URLSearchParams:', utmParams);
+            }
+          } catch (e) {
+            if (isDevMode) {
+              console.error('Error parsing startapp with URLSearchParams:', e);
+            }
+          }
+        }
+      } 
+      // Если startapp не содержит явные UTM-метки, но может иметь формат query-строки
+      else if (startParam.includes('&') || startParam.includes('=')) {
+        try {
+          // Пробуем распарсить как обычные параметры
           const startParamsDecoded = decodeURIComponent(startParam);
           const startParamsObj = new URLSearchParams(startParamsDecoded);
           
@@ -115,26 +173,30 @@ export const getUtmParams = (): Record<string, string> => {
             }
           });
           
-          if (isDevMode) {
+          if (isDevMode && Object.keys(utmParams).length > 0) {
             console.log('Parsed UTM params from startapp:', utmParams);
           }
-        } 
-        // Если startapp не содержит UTM-метки, но может быть самой UTM-меткой
-        // Например, если startapp=instagram, используем его как utm_source
-        else if (startParam) {
-          // Используем значение как utm_source
-          utmParams['utm_source'] = startParam;
-          
+        } catch (e) {
           if (isDevMode) {
-            console.log('Using startapp as utm_source:', startParam);
+            console.error('Error parsing startapp parameter:', e);
           }
+          // Если не удалось распарсить, используем значение startapp как есть
+          utmParams['utm_source'] = startParam;
         }
-      } catch (e) {
-        if (isDevMode) {
-          console.error('Error parsing startapp parameter:', e);
-        }
-        // Если не удалось распарсить, используем значение startapp как есть
+      }
+      // Если startapp - простое значение, используем его как utm_source
+      else if (startParam) {
+        // Используем значение как utm_source
         utmParams['utm_source'] = startParam;
+        
+        if (isDevMode) {
+          console.log('Using startapp as utm_source:', startParam);
+        }
+      }
+      
+      // Если мы что-то нашли, логируем результат
+      if (Object.keys(utmParams).length > 0 && isDevMode) {
+        console.log('Final UTM params from startapp:', utmParams);
       }
     }
 
@@ -548,5 +610,127 @@ export const testUtmTracking = (utmParams: Record<string, string> = {
         href: originalUrl
       }
     });
+  }
+};
+
+// Функция для тестирования startapp параметра напрямую 
+// Только для режима разработки
+export const testStartapp = (startappValue: string): void => {
+  const isDevMode = !import.meta.env.PROD;
+  if (!isDevMode) {
+    console.warn('testStartapp должна использоваться только в режиме разработки');
+    return;
+  }
+  
+  console.group('🔬 Тестирование параметра startapp');
+  console.log('Тестируем startapp со значением:', startappValue);
+  
+  // Сохраняем текущие параметры URL
+  const originalSearch = window.location.search;
+  const originalHref = window.location.href;
+  
+  try {
+    // Добавляем startapp параметр в URL
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        search: `?startapp=${encodeURIComponent(startappValue)}`,
+        href: `${window.location.origin}${window.location.pathname}?startapp=${encodeURIComponent(startappValue)}`
+      }
+    });
+    
+    // Мокаем параметры Telegram WebApp если возможно
+    if (window.Telegram?.WebApp) {
+      const originalInitDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
+      
+      // Подменяем start_param в initDataUnsafe
+      Object.defineProperty(window.Telegram.WebApp, 'initDataUnsafe', {
+        value: {
+          ...originalInitDataUnsafe,
+          start_param: startappValue
+        },
+        writable: true
+      });
+      
+      // Проверяем наличие startParams и подменяем его
+      const hasStartParams = 'startParams' in window.Telegram.WebApp;
+      const originalStartParams = hasStartParams ? (window.Telegram.WebApp as any).startParams : null;
+      
+      // Подменяем startParams если он существует
+      if (hasStartParams) {
+        Object.defineProperty(window.Telegram.WebApp, 'startParams', {
+          value: startappValue,
+          writable: true
+        });
+      }
+      
+      // Тестируем извлечение UTM-параметров
+      console.log('Получаем UTM-параметры из startapp...');
+      const utmParams = getUtmParams();
+      console.log('Извлеченные UTM-параметры:', utmParams);
+      
+      // Тестируем сохранение визита с этими параметрами
+      console.log('Тестируем сохранение визита с этими UTM-параметрами...');
+      saveVisitInfo().then(() => {
+        // Восстанавливаем оригинальные значения
+        Object.defineProperty(window.Telegram.WebApp, 'initDataUnsafe', {
+          value: originalInitDataUnsafe,
+          writable: true
+        });
+        
+        if (hasStartParams) {
+          Object.defineProperty(window.Telegram.WebApp, 'startParams', {
+            value: originalStartParams,
+            writable: true
+          });
+        }
+        
+        // Восстанавливаем оригинальный URL
+        Object.defineProperty(window, 'location', {
+          writable: true,
+          value: {
+            ...window.location,
+            search: originalSearch,
+            href: originalHref
+          }
+        });
+        
+        console.log('✅ Тестирование завершено, оригинальные значения восстановлены');
+        console.groupEnd();
+      });
+    } else {
+      // Если Telegram WebApp недоступен, тестируем только через URL
+      console.log('Telegram WebApp недоступен, тестируем только через URL параметр startapp');
+      const utmParams = getUtmParams();
+      console.log('Извлеченные UTM-параметры:', utmParams);
+      
+      // Восстанавливаем оригинальный URL
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: {
+          ...window.location,
+          search: originalSearch,
+          href: originalHref
+        }
+      });
+      
+      console.log('✅ Тестирование завершено, оригинальные значения восстановлены');
+      console.groupEnd();
+    }
+  } catch (error) {
+    console.error('❌ Ошибка при тестировании startapp:', error);
+    
+    // Восстанавливаем оригинальный URL в случае ошибки
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        search: originalSearch,
+        href: originalHref
+      }
+    });
+    
+    console.groupEnd();
   }
 }; 

@@ -131,6 +131,10 @@ if (import.meta.env.DEV) {
               {
                 name: 'startapp как источник трафика',
                 startapp: 'instagram'
+              },
+              {
+                name: 'Проблемный случай - startapp с utm_source и utm_medium',
+                startapp: 'utm_source=instagram&utm_medium=post'
               }
             ];
             
@@ -209,6 +213,17 @@ if (import.meta.env.DEV) {
                 console.error('Error testing startParams:', error);
               }
             }, 8000);
+            
+            // Через 11 секунд тестируем проблемный случай
+            setTimeout(() => {
+              console.log(`\n🧪 Test Case 4: ${testCases[3].name}`);
+              console.log('Тестируем точную проблему из URL: https://t.me/FeelMe36_bot/feelme36?startapp=utm_source=instagram&utm_medium=post');
+              
+              // Используем специальную функцию для тестирования startapp параметра
+              import('./services/supabaseService').then(({ testStartapp }) => {
+                testStartapp('utm_source=instagram&utm_medium=post');
+              });
+            }, 11000);
           }
         }
       });
