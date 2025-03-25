@@ -2,7 +2,7 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { saveVisitInfo, supabase } from './services/supabaseService';
+import { saveVisitInfo, supabase, testUtmTracking } from './services/supabaseService';
 
 // Оболочка приложения с аналитикой
 const AppWithAnalytics = () => {
@@ -77,6 +77,25 @@ if (import.meta.env.DEV) {
           console.error('Error connecting to Supabase:', error);
         } else {
           console.log('Successfully connected to Supabase. Records count:', count);
+          
+          // Тестируем UTM-метки в режиме разработки
+          // Проверяем, есть ли в URL уже UTM-метки
+          const hasUtmParams = window.location.search.includes('utm_');
+          if (!hasUtmParams) {
+            console.log('No UTM params found in URL, testing with sample UTM parameters...');
+            
+            // Через 2 секунды после загрузки приложения тестируем UTM-метки
+            setTimeout(() => {
+              testUtmTracking({
+                utm_source: 'development',
+                utm_medium: 'test',
+                utm_campaign: 'local-dev',
+                utm_content: 'auto-test'
+              });
+            }, 2000);
+          } else {
+            console.log('UTM params found in URL, skipping test tracking');
+          }
         }
       });
   } else {

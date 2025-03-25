@@ -62,18 +62,129 @@ export const supabase = (supabaseUrl && supabaseKey)
 // Получение UTM-меток из URL
 export const getUtmParams = (): Record<string, string> => {
   try {
-    const urlParams = new URLSearchParams(window.location.search);
+    const isDevMode = !import.meta.env.PROD;
     const utmParams: Record<string, string> = {};
-    
-    ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
-      const value = urlParams.get(`utm_${param}`);
-      if (value) {
-        utmParams[`utm_${param}`] = value;
+
+    // В Telegram Mini App есть несколько способов передачи параметров:
+    // 1. Через стандартные параметры URL после ?
+    // 2. Через Telegram WebApp initData
+    // 3. Через startapp параметр
+
+    if (window.location.search) {
+      // Метод 1: Проверяем стандартные параметры URL
+      const urlParams = new URLSearchParams(window.location.search);
+      
+      ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
+        const value = urlParams.get(`utm_${param}`);
+        if (value) {
+          utmParams[`utm_${param}`] = value;
+        }
+      });
+
+      if (isDevMode) {
+        console.log('UTM params from URL search:', utmParams);
       }
-    });
+    }
+
+    // Если не нашли UTM-метки в URL, проверяем startapp параметр
+    if (Object.keys(utmParams).length === 0 && window.Telegram?.WebApp) {
+      // Метод 2: Проверяем startapp параметр
+      // @ts-ignore - startParams может не быть в типах
+      const startParams = window.Telegram.WebApp.initDataUnsafe?.start_param || 
+                         // @ts-ignore - startapp может не быть в типах
+                         window.Telegram.WebApp.startParams || '';
+      
+      if (startParams) {
+        if (isDevMode) {
+          console.log('Found start params:', startParams);
+        }
+
+        // startParams может быть в формате utm_source=xxx&utm_medium=yyy или закодирован
+        try {
+          // Пробуем распарсить как обычные параметры
+          const startParamsDecoded = decodeURIComponent(startParams);
+          const startParamsObj = new URLSearchParams(startParamsDecoded);
+          
+          ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
+            const value = startParamsObj.get(`utm_${param}`);
+            if (value) {
+              utmParams[`utm_${param}`] = value;
+            }
+          });
+
+          if (isDevMode) {
+            console.log('UTM params from start params:', utmParams);
+          }
+        } catch (e) {
+          // Если не удалось распарсить, то используем значение как есть в utm_source
+          utmParams['utm_source'] = startParams;
+          
+          if (isDevMode) {
+            console.log('Using start param as utm_source:', startParams);
+          }
+        }
+      }
+    }
+
+    // Метод 3: Проверяем Telegram WebApp initData
+    if (Object.keys(utmParams).length === 0 && window.Telegram?.WebApp?.initData) {
+      try {
+        const initData = new URLSearchParams(window.Telegram.WebApp.initData);
+        // Проверяем, есть ли в initData utm-метки
+        ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
+          const value = initData.get(`utm_${param}`);
+          if (value) {
+            utmParams[`utm_${param}`] = value;
+          }
+        });
+
+        if (isDevMode) {
+          console.log('UTM params from initData:', utmParams);
+        }
+      } catch (e) {
+        if (isDevMode) {
+          console.error('Failed to parse initData for UTM params:', e);
+        }
+      }
+    }
+
+    // Метод 4: Последняя попытка - проверяем window.location.href полностью
+    if (Object.keys(utmParams).length === 0) {
+      const url = window.location.href;
+      if (isDevMode) {
+        console.log('Checking full URL for UTM params:', url);
+      }
+      
+      const utmRegexps = {
+        utm_source: /[?&]utm_source=([^&#]*)/i,
+        utm_medium: /[?&]utm_medium=([^&#]*)/i,
+        utm_campaign: /[?&]utm_campaign=([^&#]*)/i,
+        utm_content: /[?&]utm_content=([^&#]*)/i,
+        utm_term: /[?&]utm_term=([^&#]*)/i
+      };
+
+      Object.entries(utmRegexps).forEach(([key, regex]) => {
+        const match = url.match(regex);
+        if (match && match[1]) {
+          utmParams[key] = decodeURIComponent(match[1]);
+        }
+      });
+
+      if (isDevMode) {
+        console.log('UTM params from regex:', utmParams);
+      }
+    }
+
+    // Показываем результат в dev-режиме
+    if (isDevMode) {
+      console.log('Final UTM params:', utmParams);
+    }
     
     return utmParams;
-  } catch {
+  } catch (error) {
+    if (!import.meta.env.PROD) {
+      console.error('Error getting UTM params:', error);
+    }
     return {};
   }
 };
@@ -212,6 +323,28 @@ export const saveVisitInfo = async (): Promise<void> => {
       // Получаем UTM-метки
       const utmParams = getUtmParams();
       
+      // Проверяем, есть ли UTM-метки и логируем их в режиме разработки
+      if (isDevMode) {
+        if (Object.keys(utmParams).length > 0) {
+          console.log('Found UTM parameters:', utmParams);
+        } else {
+          console.warn('No UTM parameters found in URL');
+          
+          // Дополнительная диагностика, если UTM-метки не найдены
+          console.log('URL:', window.location.href);
+          console.log('Search params:', window.location.search);
+          if (window.Telegram?.WebApp) {
+            console.log('initData available:', !!window.Telegram.WebApp.initData);
+            
+            // Если доступно, логируем startParams и initDataUnsafe
+            // @ts-ignore
+            console.log('startParams:', window.Telegram.WebApp.startParams);
+            // @ts-ignore
+            console.log('initDataUnsafe:', window.Telegram.WebApp.initDataUnsafe);
+          }
+        }
+      }
+      
       // Получаем данные пользователя
       const userData = getTelegramUserData();
       
@@ -248,4 +381,78 @@ export const saveVisitInfo = async (): Promise<void> => {
       }
     }
   }, 0); // Запускаем в следующем тике event loop
+};
+
+// Функция для тестирования UTM-меток в режиме разработки
+export const testUtmTracking = (utmParams: Record<string, string> = {
+  utm_source: 'test',
+  utm_medium: 'manual',
+  utm_campaign: 'dev-test'
+}): void => {
+  const isDevMode = !import.meta.env.PROD;
+  if (!isDevMode) {
+    console.warn('testUtmTracking should only be used in development mode');
+    return;
+  }
+  
+  console.log('Testing UTM tracking with params:', utmParams);
+  
+  // Сохраняем текущий URL
+  const originalUrl = window.location.href;
+  const originalSearch = window.location.search;
+  
+  // Создаем временный объект URL для добавления UTM-параметров
+  try {
+    // Создаем фейковый объект history.pushState
+    const mockPushState = () => {
+      // Mock pushState не меняет URL, но в консоли будет видно, что мы бы хотели изменить
+      console.log('Would navigate to URL with UTM params:', 
+        `${window.location.origin}${window.location.pathname}?${Object.entries(utmParams)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+          .join('&')}`
+      );
+    };
+    
+    // Добавляем UTM-параметры в объект window.location для тестирования
+    // Это не меняет реальный URL, но позволяет нашему коду getUtmParams найти параметры
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        search: `?${Object.entries(utmParams)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+          .join('&')}`,
+        href: `${window.location.origin}${window.location.pathname}?${Object.entries(utmParams)
+          .map(([key, value]) => `${key}=${encodeURIComponent(value)}`)
+          .join('&')}`,
+      }
+    });
+    
+    // Вызываем saveVisitInfo с мокнутыми UTM-параметрами
+    saveVisitInfo().then(() => {
+      console.log('Test UTM tracking event sent');
+      
+      // Восстанавливаем оригинальный URL
+      Object.defineProperty(window, 'location', {
+        writable: true,
+        value: {
+          ...window.location,
+          search: originalSearch,
+          href: originalUrl
+        }
+      });
+    });
+  } catch (error) {
+    console.error('Error testing UTM tracking:', error);
+    
+    // Убеждаемся, что мы восстановили оригинальный URL в случае ошибки
+    Object.defineProperty(window, 'location', {
+      writable: true,
+      value: {
+        ...window.location,
+        search: originalSearch,
+        href: originalUrl
+      }
+    });
+  }
 }; 
