@@ -15,11 +15,12 @@ export interface UserVisit {
 
 // Инициализация Supabase клиента
 // Эти значения заданы на Vercel
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string;
+const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('Supabase credentials are not set in environment variables');
+  console.error('Please check NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in Vercel settings');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
