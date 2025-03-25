@@ -12,44 +12,15 @@
 
 ### Формат ссылки:
 ```
-https://t.me/FeelMe36_bot/feelme36?startapp=utm_source%3Dinstagram%26utm_medium%3Dpost%26utm_campaign%3Dspring_promo
-```
-
-### ВАЖНО - URL-кодирование:
-Обратите внимание, что символы `=` и `&` в параметре `startapp` необходимо URL-кодировать:
-- `=` должен быть заменен на `%3D`
-- `&` должен быть заменен на `%26`
-
-Правильно:
-```
-?startapp=utm_source%3Dinstagram%26utm_medium%3Dpost
-```
-
-Неправильно (может работать нестабильно):
-```
-?startapp=utm_source=instagram&utm_medium=post
+https://t.me/FeelMe36_bot/feelme36?startapp=utm_source=instagram&utm_medium=post&utm_campaign=spring_promo
 ```
 
 ### Объяснение:
 - `https://t.me/FeelMe36_bot/feelme36` - базовый URL Mini App
 - `?startapp=` - параметр Telegram для передачи данных в Mini App
-- `utm_source%3Dinstagram%26utm_medium%3Dpost%26utm_campaign%3Dspring_promo` - URL-кодированные UTM-метки
+- `utm_source=instagram&utm_medium=post&utm_campaign=spring_promo` - UTM-метки, разделенные символом `&`
 
-### Генератор UTM-ссылок:
-
-Для создания корректных ссылок с UTM-метками, выполните следующие шаги:
-1. Создайте UTM-строку в формате `utm_source=instagram&utm_medium=post&utm_campaign=spring_promo`
-2. URL-кодируйте эту строку (можно использовать функцию `encodeURIComponent()` в JavaScript или онлайн-инструменты)
-3. Добавьте результат после `?startapp=`
-
-Пример JavaScript-кода для генерации ссылки:
-```javascript
-const baseUrl = 'https://t.me/FeelMe36_bot/feelme36';
-const utmParams = 'utm_source=instagram&utm_medium=post&utm_campaign=spring_promo';
-const encodedParams = encodeURIComponent(utmParams);
-const fullUrl = `${baseUrl}?startapp=${encodedParams}`;
-console.log(fullUrl);
-```
+⚠️ **ВАЖНО**: Не используйте URL-кодирование (вроде `%3D` вместо `=` и `%26` вместо `&`) в параметрах, так как Telegram не воспринимает такие ссылки корректно. Приложение обрабатывает символы `&` и `=` в исходном виде.
 
 ### Поддерживаемые UTM-параметры:
 - `utm_source` - источник трафика (Instagram, Facebook, VK и т.д.)
@@ -66,9 +37,9 @@ https://t.me/FeelMe36_bot/feelme36?startapp=instagram
 В этом случае, значение параметра `startapp` будет автоматически записано как `utm_source`.
 
 ### Важно:
-- Согласно документации Telegram, значение параметра `startapp` может содержать только символы: `A-Z`, `a-z`, `0-9`, `_` (подчеркивание) и `-` (дефис)
+- Телеграм обрабатывает символы `&` и `=` в нативном формате, не заменяйте их на URL-кодированные аналоги (`%26` и `%3D`)
+- Согласно документации Telegram, значение параметра `startapp` может содержать только символы: `A-Z`, `a-z`, `0-9`, `_` (подчеркивание), `-` (дефис) и специальные символы `&` и `=` для UTM-меток
 - Максимальная длина параметра - 512 символов
-- Для передачи специальных символов используйте URL-кодирование
 
 ## Настройка базы данных Supabase
 
@@ -100,6 +71,23 @@ VITE_SUPABASE_ANON_KEY=ваш-публичный-ключ-supabase
 - `visit_count` - порядковый номер посещения
 - `user_data` - полные данные о пользователе в JSON формате
 - `created_at` - время создания записи
+
+## Примеры рабочих ссылок с UTM-метками
+
+1. Полная ссылка с несколькими UTM-параметрами:
+```
+https://t.me/FeelMe36_bot/feelme36?startapp=utm_source=instagram&utm_medium=post&utm_campaign=spring_promo
+```
+
+2. Ссылка только с источником и типом:
+```
+https://t.me/FeelMe36_bot/feelme36?startapp=utm_source=facebook&utm_medium=story
+```
+
+3. Простая ссылка с источником:
+```
+https://t.me/FeelMe36_bot/feelme36?startapp=vkontakte
+```
 
 ## Анализ данных
 

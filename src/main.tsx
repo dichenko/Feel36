@@ -98,23 +98,15 @@ if (import.meta.env.DEV) {
           else {
             console.log('ℹ️ UTM-параметры не найдены в URL, тестируем с примером UTM-параметров...');
             
-            // Тестовый пример 1: Закодированные UTM-метки в параметре startapp
+            // Тестовый пример 1: UTM-метки как в реальной ссылке Telegram
             setTimeout(() => {
-              // Создаем и кодируем UTM-параметры строкой
-              const utmString = 'utm_source=instagram&utm_medium=story&utm_campaign=promo_june';
-              // Правильно кодируем параметры
-              const encodedUtm = encodeURIComponent(utmString);
-              
-              console.log('\n🧪 Тест: Закодированные UTM-метки в параметре startapp');
-              console.log('Исходная строка UTM:', utmString);
-              console.log('Закодированная строка:', encodedUtm);
-              
-              testStartapp(encodedUtm);
+              console.log('\n🧪 Тест: Реальная ссылка - utm_source=instagram&utm_medium=post&utm_campaign=spring_promo');
+              testStartapp('utm_source=instagram&utm_medium=post&utm_campaign=spring_promo');
             }, 2000);
             
             // Тестовый пример 2: Простое значение source в startapp
             setTimeout(() => {
-              console.log('\n🧪 Тест: Значение источника в параметре startapp');
+              console.log('\n🧪 Тест: Простой источник - instagram');
               testStartapp('instagram');
             }, 6000);
           }
