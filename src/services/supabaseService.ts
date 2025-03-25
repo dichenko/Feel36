@@ -65,13 +65,83 @@ export const getUtmParams = (): Record<string, string> => {
     const isDevMode = !import.meta.env.PROD;
     const utmParams: Record<string, string> = {};
 
-    // В Telegram Mini App есть несколько способов передачи параметров:
-    // 1. Через стандартные параметры URL после ?
-    // 2. Через Telegram WebApp initData
-    // 3. Через startapp параметр
+    // Основная проблема в том, что в Telegram Mini App параметры передаются специальным образом:
+    // 1. startapp параметр в URL: https://t.me/FeelMe36_bot/feelme36?startapp=ABC
+    // 2. Параметр доступен в window.Telegram.WebApp.initDataUnsafe.start_param
+    // Сначала проверяем startapp параметр из URL и WebApp.initDataUnsafe
 
-    if (window.location.search) {
-      // Метод 1: Проверяем стандартные параметры URL
+    // Получаем startapp параметр из WebApp.initDataUnsafe
+    let startParam = '';
+    if (window.Telegram?.WebApp?.initDataUnsafe?.start_param) {
+      startParam = window.Telegram.WebApp.initDataUnsafe.start_param;
+      if (isDevMode) {
+        console.log('Found start_param in initDataUnsafe:', startParam);
+      }
+    }
+
+    // Если параметра нет в initDataUnsafe, ищем его в window.Telegram.WebApp.startParams
+    if (!startParam && window.Telegram?.WebApp?.startParams) {
+      startParam = window.Telegram.WebApp.startParams;
+      if (isDevMode) {
+        console.log('Found startParams:', startParam);
+      }
+    }
+
+    // Если параметра нет в объекте WebApp, пробуем найти его в URL
+    if (!startParam) {
+      // Проверяем ?startapp= параметр в URL
+      const urlSearchParams = new URLSearchParams(window.location.search);
+      startParam = urlSearchParams.get('startapp') || '';
+      if (startParam && isDevMode) {
+        console.log('Found startapp in URL query:', startParam);
+      }
+    }
+
+    // Если нашли startapp параметр, обрабатываем его
+    if (startParam) {
+      try {
+        // В Telegram Mini App startapp может содержать сразу все UTM-метки в одной строке
+        // Если это строка в формате utm_source=x&utm_medium=y&..., пробуем распарсить
+        if (startParam.includes('utm_') || startParam.includes('&')) {
+          // Декодируем параметр и создаем URLSearchParams объект
+          const startParamsDecoded = decodeURIComponent(startParam);
+          const startParamsObj = new URLSearchParams(startParamsDecoded);
+          
+          // Проверяем наличие UTM-меток
+          ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
+            const value = startParamsObj.get(`utm_${param}`);
+            if (value) {
+              utmParams[`utm_${param}`] = value;
+            }
+          });
+          
+          if (isDevMode) {
+            console.log('Parsed UTM params from startapp:', utmParams);
+          }
+        } 
+        // Если startapp не содержит UTM-метки, но может быть самой UTM-меткой
+        // Например, если startapp=instagram, используем его как utm_source
+        else if (startParam) {
+          // Используем значение как utm_source
+          utmParams['utm_source'] = startParam;
+          
+          if (isDevMode) {
+            console.log('Using startapp as utm_source:', startParam);
+          }
+        }
+      } catch (e) {
+        if (isDevMode) {
+          console.error('Error parsing startapp parameter:', e);
+        }
+        // Если не удалось распарсить, используем значение startapp как есть
+        utmParams['utm_source'] = startParam;
+      }
+    }
+
+    // Метод 2: проверяем URL на наличие UTM-меток
+    // Это запасной вариант, если метки переданы обычным способом
+    if (Object.keys(utmParams).length === 0) {
+      // Ищем UTM-метки в URL
       const urlParams = new URLSearchParams(window.location.search);
       
       ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
@@ -81,56 +151,17 @@ export const getUtmParams = (): Record<string, string> => {
         }
       });
 
-      if (isDevMode) {
-        console.log('UTM params from URL search:', utmParams);
+      if (Object.keys(utmParams).length > 0 && isDevMode) {
+        console.log('Found UTM params in URL search:', utmParams);
       }
     }
 
-    // Если не нашли UTM-метки в URL, проверяем startapp параметр
-    if (Object.keys(utmParams).length === 0 && window.Telegram?.WebApp) {
-      // Метод 2: Проверяем startapp параметр
-      // @ts-ignore - startParams может не быть в типах
-      const startParams = window.Telegram.WebApp.initDataUnsafe?.start_param || 
-                         // @ts-ignore - startapp может не быть в типах
-                         window.Telegram.WebApp.startParams || '';
-      
-      if (startParams) {
-        if (isDevMode) {
-          console.log('Found start params:', startParams);
-        }
-
-        // startParams может быть в формате utm_source=xxx&utm_medium=yyy или закодирован
-        try {
-          // Пробуем распарсить как обычные параметры
-          const startParamsDecoded = decodeURIComponent(startParams);
-          const startParamsObj = new URLSearchParams(startParamsDecoded);
-          
-          ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
-            const value = startParamsObj.get(`utm_${param}`);
-            if (value) {
-              utmParams[`utm_${param}`] = value;
-            }
-          });
-
-          if (isDevMode) {
-            console.log('UTM params from start params:', utmParams);
-          }
-        } catch (e) {
-          // Если не удалось распарсить, то используем значение как есть в utm_source
-          utmParams['utm_source'] = startParams;
-          
-          if (isDevMode) {
-            console.log('Using start param as utm_source:', startParams);
-          }
-        }
-      }
-    }
-
-    // Метод 3: Проверяем Telegram WebApp initData
+    // Метод 3: обработка initData
+    // В некоторых версиях Telegram initData может содержать UTM-метки
     if (Object.keys(utmParams).length === 0 && window.Telegram?.WebApp?.initData) {
       try {
         const initData = new URLSearchParams(window.Telegram.WebApp.initData);
-        // Проверяем, есть ли в initData utm-метки
+        
         ['source', 'medium', 'campaign', 'content', 'term'].forEach(param => {
           const value = initData.get(`utm_${param}`);
           if (value) {
@@ -138,8 +169,8 @@ export const getUtmParams = (): Record<string, string> => {
           }
         });
 
-        if (isDevMode) {
-          console.log('UTM params from initData:', utmParams);
+        if (Object.keys(utmParams).length > 0 && isDevMode) {
+          console.log('Found UTM params in initData:', utmParams);
         }
       } catch (e) {
         if (isDevMode) {
@@ -148,36 +179,66 @@ export const getUtmParams = (): Record<string, string> => {
       }
     }
 
-    // Метод 4: Последняя попытка - проверяем window.location.href полностью
+    // Метод 4: последний шанс - проверка полного URL с помощью регулярных выражений
     if (Object.keys(utmParams).length === 0) {
-      const url = window.location.href;
+      // Получаем полный URL, включая hash-часть
+      const fullUrl = window.location.href + window.location.hash;
+      
       if (isDevMode) {
-        console.log('Checking full URL for UTM params:', url);
+        console.log('Last try: Checking full URL for UTM params:', fullUrl);
       }
       
+      // Используем регулярные выражения для поиска UTM-меток в любой части URL
       const utmRegexps = {
-        utm_source: /[?&]utm_source=([^&#]*)/i,
-        utm_medium: /[?&]utm_medium=([^&#]*)/i,
-        utm_campaign: /[?&]utm_campaign=([^&#]*)/i,
-        utm_content: /[?&]utm_content=([^&#]*)/i,
-        utm_term: /[?&]utm_term=([^&#]*)/i
+        utm_source: /[?&#]utm_source=([^&#]*)/i,
+        utm_medium: /[?&#]utm_medium=([^&#]*)/i,
+        utm_campaign: /[?&#]utm_campaign=([^&#]*)/i,
+        utm_content: /[?&#]utm_content=([^&#]*)/i,
+        utm_term: /[?&#]utm_term=([^&#]*)/i
       };
 
       Object.entries(utmRegexps).forEach(([key, regex]) => {
-        const match = url.match(regex);
+        const match = fullUrl.match(regex);
         if (match && match[1]) {
           utmParams[key] = decodeURIComponent(match[1]);
         }
       });
 
+      if (Object.keys(utmParams).length > 0 && isDevMode) {
+        console.log('Found UTM params using regex:', utmParams);
+      }
+    }
+
+    // Если всё равно не нашли UTM-метки, можно попробовать использовать referer
+    if (Object.keys(utmParams).length === 0 && document.referrer) {
+      const referrer = document.referrer;
       if (isDevMode) {
-        console.log('UTM params from regex:', utmParams);
+        console.log('No UTM params found, checking referrer:', referrer);
+      }
+      
+      // Извлекаем домен из референта и используем его как utm_source
+      try {
+        const referrerUrl = new URL(referrer);
+        const domain = referrerUrl.hostname.replace('www.', '');
+        
+        if (domain && domain !== window.location.hostname) {
+          utmParams['utm_source'] = domain;
+          if (isDevMode) {
+            console.log('Using referrer domain as utm_source:', domain);
+          }
+        }
+      } catch (e) {
+        // Игнорируем ошибки парсинга URL
       }
     }
 
     // Показываем результат в dev-режиме
     if (isDevMode) {
-      console.log('Final UTM params:', utmParams);
+      if (Object.keys(utmParams).length > 0) {
+        console.log('Final UTM params:', utmParams);
+      } else {
+        console.warn('No UTM parameters found after all attempts');
+      }
     }
     
     return utmParams;
@@ -294,14 +355,48 @@ export const saveVisitInfo = async (): Promise<void> => {
   const isDevMode = !import.meta.env.PROD;
   
   if (isDevMode) {
-    console.log('Attempting to save visit info...');
+    console.group('📊 Attempting to save visit info...');
     console.log('Supabase client initialized:', !!supabase);
+
+    // Отладочная информация о текущем URL
+    console.log('Current URL:', window.location.href);
+    console.log('URL search params:', window.location.search);
+    console.log('URL hash:', window.location.hash);
+    
+    // Проверяем наличие Telegram WebApp
+    const tgAvailable = typeof window.Telegram !== 'undefined' && typeof window.Telegram.WebApp !== 'undefined';
+    console.log('Telegram WebApp available:', tgAvailable);
+    
+    if (tgAvailable) {
+      // Проверяем доступные параметры
+      console.log('initData available:', !!window.Telegram.WebApp.initData);
+      console.log('initDataUnsafe available:', !!window.Telegram.WebApp.initDataUnsafe);
+      console.log('startParams available:', !!(window.Telegram.WebApp as any).startParams);
+      
+      // Логируем содержимое initDataUnsafe если доступно
+      if (window.Telegram.WebApp.initDataUnsafe) {
+        console.log('initDataUnsafe:', JSON.stringify(window.Telegram.WebApp.initDataUnsafe, null, 2));
+      }
+      
+      // Логируем startParams если доступно
+      const startParams = (window.Telegram.WebApp as any).startParams;
+      if (startParams) {
+        console.log('startParams value:', startParams);
+      }
+      
+      // Проверяем start_param в initDataUnsafe
+      const startParam = window.Telegram.WebApp.initDataUnsafe?.start_param;
+      if (startParam) {
+        console.log('start_param value:', startParam);
+      }
+    }
   }
   
   // Если Supabase не инициализирован, просто игнорируем сохранение
   if (!supabase) {
     if (isDevMode) {
-      console.warn('Supabase client not initialized. Unable to save visit info.');
+      console.warn('❌ Supabase client not initialized. Unable to save visit info.');
+      console.groupEnd();
     }
     return;
   }
@@ -315,7 +410,8 @@ export const saveVisitInfo = async (): Promise<void> => {
       // Если ID не найден, не сохраняем данные
       if (!tgId) {
         if (isDevMode) {
-          console.warn('Telegram user ID not found. Visit data not saved.');
+          console.warn('❌ Telegram user ID not found. Visit data not saved.');
+          console.groupEnd();
         }
         return;
       }
@@ -326,30 +422,23 @@ export const saveVisitInfo = async (): Promise<void> => {
       // Проверяем, есть ли UTM-метки и логируем их в режиме разработки
       if (isDevMode) {
         if (Object.keys(utmParams).length > 0) {
-          console.log('Found UTM parameters:', utmParams);
+          console.log('✅ Found UTM parameters:', utmParams);
         } else {
-          console.warn('No UTM parameters found in URL');
-          
-          // Дополнительная диагностика, если UTM-метки не найдены
-          console.log('URL:', window.location.href);
-          console.log('Search params:', window.location.search);
-          if (window.Telegram?.WebApp) {
-            console.log('initData available:', !!window.Telegram.WebApp.initData);
-            
-            // Если доступно, логируем startParams и initDataUnsafe
-            // @ts-ignore
-            console.log('startParams:', window.Telegram.WebApp.startParams);
-            // @ts-ignore
-            console.log('initDataUnsafe:', window.Telegram.WebApp.initDataUnsafe);
-          }
+          console.warn('⚠️ No UTM parameters found in URL');
         }
       }
       
       // Получаем данные пользователя
       const userData = getTelegramUserData();
+      if (isDevMode && Object.keys(userData).length > 0) {
+        console.log('✅ User data:', userData);
+      }
       
       // Увеличиваем счетчик визитов
       const visitCount = incrementVisitCount();
+      if (isDevMode) {
+        console.log('📈 Visit count:', visitCount);
+      }
       
       // Создаем объект для вставки в БД
       const visitData: UserVisit = {
@@ -361,7 +450,7 @@ export const saveVisitInfo = async (): Promise<void> => {
       };
       
       if (isDevMode) {
-        console.log('Visit data to be saved:', visitData);
+        console.log('📦 Visit data to be saved:', visitData);
       }
       
       // Вставляем данные в таблицу user_visits
@@ -369,15 +458,20 @@ export const saveVisitInfo = async (): Promise<void> => {
         .from('user_visits')
         .insert([visitData]);
         
-      if (error && isDevMode) {
-        console.error('Error saving visit info:', error);
+      if (error) {
+        if (isDevMode) {
+          console.error('❌ Error saving visit info:', error);
+          console.groupEnd();
+        }
       } else if (isDevMode) {
-        console.log('Visit info saved successfully!');
+        console.log('✅ Visit info saved successfully!');
+        console.groupEnd();
       }
     } catch (error) {
       // Игнорируем все ошибки при сохранении
       if (isDevMode) {
-        console.error('Failed to save visit info:', error);
+        console.error('❌ Failed to save visit info:', error);
+        console.groupEnd();
       }
     }
   }, 0); // Запускаем в следующем тике event loop

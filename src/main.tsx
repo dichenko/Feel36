@@ -79,22 +79,136 @@ if (import.meta.env.DEV) {
           console.log('Successfully connected to Supabase. Records count:', count);
           
           // Тестируем UTM-метки в режиме разработки
-          // Проверяем, есть ли в URL уже UTM-метки
+          console.log('🔍 Testing UTM parameter detection...');
+          
+          // Проверяем текущий URL на наличие UTM или startapp параметров
           const hasUtmParams = window.location.search.includes('utm_');
-          if (!hasUtmParams) {
-            console.log('No UTM params found in URL, testing with sample UTM parameters...');
+          const hasStartapp = window.location.search.includes('startapp=');
+          
+          // Если URL уже содержит параметры - используем их
+          if (hasUtmParams) {
+            console.log('✅ URL already contains UTM parameters. Using them for testing.');
             
-            // Через 2 секунды после загрузки приложения тестируем UTM-метки
+            // Сохраняем информацию о визите с реальными UTM-метками
             setTimeout(() => {
-              testUtmTracking({
-                utm_source: 'development',
-                utm_medium: 'test',
-                utm_campaign: 'local-dev',
-                utm_content: 'auto-test'
-              });
+              saveVisitInfo();
+            }, 1000);
+          } 
+          // Если URL содержит startapp параметр
+          else if (hasStartapp) {
+            console.log('✅ URL contains startapp parameter. Testing with it.');
+            
+            // Получаем значение startapp
+            const urlParams = new URLSearchParams(window.location.search);
+            const startappValue = urlParams.get('startapp');
+            
+            console.log('Using startapp value:', startappValue);
+            
+            // Сохраняем информацию о визите
+            setTimeout(() => {
+              saveVisitInfo();
+            }, 1000);
+          }
+          // Если нет параметров, генерируем тестовые UTM-метки
+          else {
+            console.log('ℹ️ No UTM params found in URL, testing with sample UTM parameters...');
+            
+            // Создаем тестовые параметры для разных сценариев
+            const testCases = [
+              {
+                name: 'Стандартные UTM-метки',
+                params: {
+                  utm_source: 'development',
+                  utm_medium: 'test',
+                  utm_campaign: 'local-dev',
+                  utm_content: 'auto-test'
+                }
+              },
+              {
+                name: 'Имитация startapp параметра с UTM-метками',
+                startapp: 'utm_source=instagram&utm_medium=story&utm_campaign=promo_june'
+              },
+              {
+                name: 'startapp как источник трафика',
+                startapp: 'instagram'
+              }
+            ];
+            
+            // Поочередно тестируем разные сценарии
+            // Через 2 секунды после загрузки приложения тестируем базовые UTM-метки
+            setTimeout(() => {
+              console.log(`\n🧪 Test Case 1: ${testCases[0].name}`);
+              testUtmTracking(testCases[0].params);
             }, 2000);
-          } else {
-            console.log('UTM params found in URL, skipping test tracking');
+            
+            // Через 5 секунд тестируем startapp с UTM-метками
+            setTimeout(() => {
+              console.log(`\n🧪 Test Case 2: ${testCases[1].name}`);
+              
+              // Мокаем window.Telegram.WebApp.initDataUnsafe с start_param
+              try {
+                if (window.Telegram && window.Telegram.WebApp) {
+                  const originalInitDataUnsafe = window.Telegram.WebApp.initDataUnsafe;
+                  
+                  // Временно подменяем initDataUnsafe
+                  Object.defineProperty(window.Telegram.WebApp, 'initDataUnsafe', {
+                    value: {
+                      ...originalInitDataUnsafe,
+                      start_param: testCases[1].startapp
+                    },
+                    writable: true
+                  });
+                  
+                  // Запускаем тест
+                  testUtmTracking();
+                  
+                  // Восстанавливаем оригинальное значение
+                  setTimeout(() => {
+                    Object.defineProperty(window.Telegram.WebApp, 'initDataUnsafe', {
+                      value: originalInitDataUnsafe,
+                      writable: true
+                    });
+                  }, 1000);
+                } else {
+                  console.warn('Cannot test startapp - Telegram WebApp not initialized');
+                }
+              } catch (error) {
+                console.error('Error testing startapp parameter:', error);
+              }
+            }, 5000);
+            
+            // Через 8 секунд тестируем простой startapp
+            setTimeout(() => {
+              console.log(`\n🧪 Test Case 3: ${testCases[2].name}`);
+              
+              // Мокаем window.Telegram.WebApp.startParams
+              try {
+                if (window.Telegram && window.Telegram.WebApp) {
+                  const originalStartParams = (window.Telegram.WebApp as any).startParams;
+                  
+                  // Временно подменяем startParams
+                  Object.defineProperty(window.Telegram.WebApp, 'startParams', {
+                    value: testCases[2].startapp,
+                    writable: true
+                  });
+                  
+                  // Запускаем тест
+                  testUtmTracking();
+                  
+                  // Восстанавливаем оригинальное значение
+                  setTimeout(() => {
+                    Object.defineProperty(window.Telegram.WebApp, 'startParams', {
+                      value: originalStartParams,
+                      writable: true
+                    });
+                  }, 1000);
+                } else {
+                  console.warn('Cannot test startParams - Telegram WebApp not initialized');
+                }
+              } catch (error) {
+                console.error('Error testing startParams:', error);
+              }
+            }, 8000);
           }
         }
       });
