@@ -13,13 +13,51 @@ export interface UserVisit {
   user_data: Record<string, any>;
 }
 
-// Инициализация Supabase клиента
-// Эти значения заданы на Vercel
-const supabaseUrl = import.meta.env.NEXT_PUBLIC_SUPABASE_URL as string;
-const supabaseKey = import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string;
+// Инициализация Supabase клиента через переменные окружения Vercel
+// Note: нам нужно использовать корректные переменные окружения, заданные в Vercel
+const getSupabaseConfig = () => {
+  // Включаем логирование если находимся в режиме разработки
+  const isDevMode = !import.meta.env.PROD;
+  
+  if (isDevMode) {
+    console.log('Running in development mode');
+  }
 
-// Создаем клиент Supabase только если есть необходимые переменные окружения
-const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+  // В Vite можно получить доступ к переменным окружения из Vercel через import.meta.env
+  // Проверяем все возможные имена переменных окружения
+  const supabaseUrlOptions = [
+    import.meta.env.NEXT_PUBLIC_SUPABASE_URL,
+    import.meta.env.SUPABASE_URL
+  ];
+  
+  const supabaseKeyOptions = [
+    import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    import.meta.env.SUPABASE_ANON_KEY
+  ];
+
+  // Используем первую найденную переменную
+  const supabaseUrl = supabaseUrlOptions.find(url => url) as string;
+  const supabaseKey = supabaseKeyOptions.find(key => key) as string;
+
+  if (isDevMode) {
+    console.log('Supabase URL available:', !!supabaseUrl);
+    console.log('Supabase Key available:', !!supabaseKey);
+  }
+
+  return { supabaseUrl, supabaseKey };
+};
+
+// Получаем конфигурацию Supabase
+const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+
+// Создаем клиент Supabase только если доступны необходимые переменные окружения
+export const supabase = (supabaseUrl && supabaseKey) 
+  ? createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: false // Отключаем сохранение сессии, т.к. это не нужно для аналитики
+      }
+    })
+  : null;
 
 // Получение UTM-меток из URL
 export const getUtmParams = (): Record<string, string> => {
@@ -94,7 +132,24 @@ export const getTelegramUserData = (): Record<string, any> => {
 export const getTelegramUserId = (): string => {
   try {
     const userData = getTelegramUserData();
-    return userData?.id?.toString() || '';
+    
+    // Если ID пользователя не найден, попробуем использовать user.id, id или user_id (разные версии API могут возвращать разные форматы)
+    const userId = userData?.id?.toString() || 
+                  userData?.user?.id?.toString() || 
+                  userData?.user_id?.toString() || 
+                  '';
+                  
+    // Если ID не найден, создадим временный ID на основе хеша initData
+    if (!userId && window.Telegram?.WebApp?.initData) {
+      // Создаем хеш из initData - это не будет настоящим ID пользователя, но будет уникальным для каждого пользователя
+      return `temp_${Math.abs(
+        window.Telegram.WebApp.initData.split('').reduce(
+          (acc, char) => (acc * 31 + char.charCodeAt(0)) | 0, 0
+        )
+      )}`;
+    }
+    
+    return userId;
   } catch {
     return '';
   }
@@ -124,8 +179,19 @@ export const incrementVisitCount = (): number => {
 
 // Сохранить информацию о визите в Supabase
 export const saveVisitInfo = async (): Promise<void> => {
+  // Выводим отладочную информацию в режиме разработки
+  const isDevMode = !import.meta.env.PROD;
+  
+  if (isDevMode) {
+    console.log('Attempting to save visit info...');
+    console.log('Supabase client initialized:', !!supabase);
+  }
+  
   // Если Supabase не инициализирован, просто игнорируем сохранение
   if (!supabase) {
+    if (isDevMode) {
+      console.warn('Supabase client not initialized. Unable to save visit info.');
+    }
     return;
   }
 
@@ -137,6 +203,9 @@ export const saveVisitInfo = async (): Promise<void> => {
       
       // Если ID не найден, не сохраняем данные
       if (!tgId) {
+        if (isDevMode) {
+          console.warn('Telegram user ID not found. Visit data not saved.');
+        }
         return;
       }
       
@@ -158,12 +227,25 @@ export const saveVisitInfo = async (): Promise<void> => {
         ...utmParams
       };
       
+      if (isDevMode) {
+        console.log('Visit data to be saved:', visitData);
+      }
+      
       // Вставляем данные в таблицу user_visits
-      await supabase
+      const { error } = await supabase
         .from('user_visits')
         .insert([visitData]);
-    } catch {
+        
+      if (error && isDevMode) {
+        console.error('Error saving visit info:', error);
+      } else if (isDevMode) {
+        console.log('Visit info saved successfully!');
+      }
+    } catch (error) {
       // Игнорируем все ошибки при сохранении
+      if (isDevMode) {
+        console.error('Failed to save visit info:', error);
+      }
     }
   }, 0); // Запускаем в следующем тике event loop
 }; 

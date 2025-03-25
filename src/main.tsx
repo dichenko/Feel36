@@ -1,37 +1,90 @@
-import { StrictMode, useEffect } from 'react';
+import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { saveVisitInfo } from './services/supabaseService';
+import { saveVisitInfo, supabase } from './services/supabaseService';
 
-// Оборачиваем приложение для вызова saveVisitInfo при монтировании
+// Оболочка приложения с аналитикой
 const AppWithAnalytics = () => {
+  // State для отслеживания готовности Telegram WebApp
+  const [telegramReady, setTelegramReady] = useState(false);
+  
+  // Инициализируем Telegram WebApp
   useEffect(() => {
-    // Проверяем, что Telegram WebApp доступен
-    if (!window.Telegram?.WebApp) {
-      console.error('Telegram WebApp is not available');
-      return;
-    }
-
-    // Инициализируем Telegram WebApp
-    try {
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-      console.log('Telegram WebApp initialized successfully');
-    } catch (error) {
-      console.error('Failed to initialize Telegram WebApp:', error);
-      return;
-    }
-
-    // Сохраняем информацию о визите при загрузке приложения
-    saveVisitInfo().catch(error => {
-      console.error('Failed to save visit info:', error);
-    });
+    const initTelegram = () => {
+      try {
+        // Проверяем доступность Telegram WebApp
+        if (!window.Telegram?.WebApp) {
+          // Если мы не в среде Telegram WebApp, просто отображаем приложение без аналитики
+          setTelegramReady(true);
+          return;
+        }
+        
+        // Инициализируем Telegram WebApp
+        window.Telegram.WebApp.ready();
+        window.Telegram.WebApp.expand();
+        
+        // WebApp успешно инициализирован
+        setTelegramReady(true);
+      } catch (error) {
+        // В случае ошибки все равно показываем приложение
+        console.error('Error initializing Telegram WebApp:', error);
+        setTelegramReady(true);
+      }
+    };
+    
+    // Запускаем инициализацию с небольшой задержкой
+    const timeoutId = setTimeout(initTelegram, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
-
+  
+  // Сохраняем данные о посещении после инициализации Telegram WebApp
+  useEffect(() => {
+    if (!telegramReady) return;
+    
+    // Сохраняем информацию о визите в фоновом режиме
+    const saveVisitInfoAsync = async () => {
+      try {
+        await saveVisitInfo();
+      } catch (error) {
+        // Игнорируем ошибки
+      }
+    };
+    
+    saveVisitInfoAsync();
+    
+    // По желанию можно добавить периодическое сохранение данных о пользователе
+    // при длительном использовании приложения
+    const intervalId = setInterval(saveVisitInfoAsync, 30 * 60 * 1000); // каждые 30 минут
+    
+    return () => clearInterval(intervalId);
+  }, [telegramReady]);
+  
+  // Если WebApp не готов, можно показать лоадер или сразу приложение
   return <App />;
 };
 
+// Логируем информацию о Supabase в режиме разработки
+if (import.meta.env.DEV) {
+  console.log('Supabase client initialized:', !!supabase);
+  
+  if (supabase) {
+    console.log('Testing Supabase connection...');
+    supabase.from('user_visits').select('id', { count: 'exact' }).limit(0)
+      .then(({ error, count }) => {
+        if (error) {
+          console.error('Error connecting to Supabase:', error);
+        } else {
+          console.log('Successfully connected to Supabase. Records count:', count);
+        }
+      });
+  } else {
+    console.warn('Supabase client not initialized. Check your environment variables.');
+  }
+}
+
+// Рендерим приложение
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AppWithAnalytics />
