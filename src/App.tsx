@@ -54,6 +54,8 @@ declare global {
           button_color: string;
           button_text_color: string;
         };
+        openLink: (url: string) => void;
+        openTelegramLink: (url: string) => void;
       };
     };
   }
@@ -85,6 +87,22 @@ function App() {
       console.error('Ошибка при загрузке прогресса:', error);
     }
   }, []);
+
+  // Проверка наличия сохраненного прогресса
+  const hasProgress = () => {
+    try {
+      return !!localStorage.getItem('feelme36_progress');
+    } catch {
+      return false;
+    }
+  };
+
+  // Пропуск stories при наличии прогресса
+  useEffect(() => {
+    if (hasProgress() && !isStarted) {
+      setIsStarted(true);
+    }
+  }, [isStarted]);
 
   // Сохранение прогресса при изменении состояния
   useEffect(() => {
@@ -121,28 +139,15 @@ function App() {
       return;
     }
 
-    if (isStarted && !showEyeContact && !showFinalEyeContact) {
-      try {
-        tg.BackButton.show();
-        tg.BackButton.onClick(() => {
-          if (currentQuestion > 0) {
-            setCurrentQuestion(currentQuestion - 1);
-          } else if (currentSet > 0) {
-            setCurrentSet(currentSet - 1);
-            setCurrentQuestion(questions.length / 3 - 1);
-          } else {
-            setIsStarted(false);
-          }
-        });
-      } catch (error) {
-        // Игнорируем ошибки с BackButton
-      }
-    } else {
-      try {
-        tg.BackButton.hide();
-      } catch (error) {
-        // Игнорируем ошибки с BackButton
-      }
+    try {
+      // Показываем кнопку назад на всех экранах
+      tg.BackButton.show();
+      // Закрываем приложение при нажатии на BackButton
+      tg.BackButton.onClick(() => {
+        tg.close();
+      });
+    } catch (error) {
+      // Игнорируем ошибки с BackButton
     }
 
     // Очистка обработчика событий кнопки "Назад"
@@ -153,7 +158,7 @@ function App() {
         // Игнорируем ошибки с BackButton
       }
     };
-  }, [isStarted, currentSet, currentQuestion, showEyeContact, showFinalEyeContact]);
+  }, []);
 
   const welcomeStories = [
     {
@@ -354,10 +359,38 @@ function App() {
           </p>
           <button
             onClick={showFinalEyeContact ? restart : handleNextSet}
-            className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+            className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] mb-6"
           >
             {showFinalEyeContact ? "Начать сначала" : "Перейти к следующему блоку"}
           </button>
+          
+          {showFinalEyeContact && (
+            <div className="flex flex-col gap-4 mt-6">
+              <button
+                onClick={() => {
+                  const tg = window.Telegram?.WebApp;
+                  if (tg) {
+                    tg.openTelegramLink('https://t.me/QA_FeelMe36_bot');
+                  }
+                }}
+                className="bg-white text-rose-500 border border-rose-300 px-8 py-3 rounded-full text-base font-medium shadow-sm hover:shadow-md transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+              >
+                Обратная связь
+              </button>
+              
+              <button
+                onClick={() => {
+                  const tg = window.Telegram?.WebApp;
+                  if (tg) {
+                    tg.openLink('https://telegra.ph/36-voprosov-chtoby-vlyubitsya-03-27');
+                  }
+                }}
+                className="text-xs text-rose-500/80 hover:text-rose-600 transition-colors"
+              >
+                Узнать подробнее про 36 вопросов
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
