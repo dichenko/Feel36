@@ -10,5 +10,41 @@
 }
 
 .card-shadow {
-  box-shadow: 0 0 40px rgba(247, 186, 186, 0.15);
+  box-shadow: 0 10px 25px -5px rgba(244, 63, 94, 0.1), 0 8px 10px -6px rgba(244, 63, 94, 0.05);
+}
+
+.story-card {
+  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.95), rgba(254, 242, 242, 0.95));
+  transition: transform 0.5s ease, box-shadow 0.5s ease;
+}
+
+.story-transition-enter {
+  opacity: 0;
+  transform: translateX(50px);
+}
+
+.story-transition-enter-active {
+  opacity: 1;
+  transform: translateX(0);
+  transition: opacity 400ms, transform 400ms;
+}
+
+.story-transition-exit {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.story-transition-exit-active {
+  opacity: 0;
+  transform: translateX(-50px);
+  transition: opacity 400ms, transform 400ms;
+}
+
+.progress-indicator {
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.progress-indicator.active {
+  background: linear-gradient(to right, #f43f5e, #fb7185);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
 }
