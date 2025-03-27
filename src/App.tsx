@@ -300,10 +300,10 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-[430px] story-card backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow">
+      <div className="w-full max-w-[430px] story-card backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow relative">
         {/* Декоративные элементы */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-rose-200/40 to-transparent rounded-bl-full -z-0"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-rose-200/40 to-transparent rounded-tr-full -z-0"></div>
+        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-rose-200/40 to-transparent rounded-bl-full z-0"></div>
+        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-rose-200/40 to-transparent rounded-tr-full z-0"></div>
         
         <div className="flex items-center justify-between mb-8 relative z-10">
           <div className="flex items-center gap-3">
