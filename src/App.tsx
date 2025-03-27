@@ -181,16 +181,16 @@ function App() {
     }
   };
 
-  // Обработчики свайпов
-  const handleTouchStart = (e: TouchEvent) => {
+  // Обработчики свайпов для stories
+  const handleStoryTouchStart = (e: TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
 
-  const handleTouchMove = (e: TouchEvent) => {
+  const handleStoryTouchMove = (e: TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
-  const handleTouchEnd = () => {
+  const handleStoryTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
     const minSwipeDistance = 50;
@@ -207,6 +207,32 @@ function App() {
     setTouchEnd(null);
   };
 
+  // Обработчики свайпов для вопросов
+  const handleQuestionTouchStart = (e: TouchEvent) => {
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const handleQuestionTouchMove = (e: TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const handleQuestionTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const minSwipeDistance = 50;
+    
+    if (distance > minSwipeDistance) {
+      // Свайп влево - следующий вопрос
+      handleNext();
+    } else if (distance < -minSwipeDistance && currentQuestion > 0) {
+      // Свайп вправо - предыдущий вопрос (если не первый вопрос)
+      setCurrentQuestion(currentQuestion - 1);
+    }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
+  };
+
   if (!isStarted) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
@@ -214,9 +240,9 @@ function App() {
           {/* Story card */}
           <div 
             className="bg-white/95 backdrop-blur-sm rounded-3xl card-shadow overflow-hidden aspect-[9/16] relative"
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
+            onTouchStart={handleStoryTouchStart}
+            onTouchMove={handleStoryTouchMove}
+            onTouchEnd={handleStoryTouchEnd}
           >
             {/* Content */}
             <div className="h-full flex flex-col justify-between p-8">
@@ -299,55 +325,67 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow">
-        <div className="flex items-center justify-between mb-8">
-          <div className="flex items-center gap-3">
-            <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
-          </div>
-          <div className="text-sm font-medium text-rose-600/80">
-            Блок {currentSet + 1} из {totalSets}
-          </div>
-        </div>
-
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="h-1 flex-1 rounded-full bg-rose-100">
-              <div 
-                className="h-full rounded-full bg-rose-500 transition-all duration-300"
-                style={{ width: `${((currentQuestion + 1) / questionsPerSet) * 100}%` }}
-              />
+      <div 
+        className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow h-[520px] flex flex-col justify-between"
+        onTouchStart={handleQuestionTouchStart}
+        onTouchMove={handleQuestionTouchMove}
+        onTouchEnd={handleQuestionTouchEnd}
+      >
+        <div>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
             </div>
-            <span className="text-sm font-medium text-rose-600/80">
-              {currentQuestion + 1}/{questionsPerSet}
-            </span>
+            <div className="text-sm font-medium text-rose-600/80">
+              Блок {currentSet + 1} из {totalSets}
+            </div>
           </div>
-          <p className="text-xl text-rose-900 leading-relaxed">
-            {currentSetQuestions[currentQuestion]}
-          </p>
+
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-1 flex-1 rounded-full bg-rose-100">
+                <div 
+                  className="h-full rounded-full bg-rose-500 transition-all duration-300"
+                  style={{ width: `${((currentQuestion + 1) / questionsPerSet) * 100}%` }}
+                />
+              </div>
+              <span className="text-sm font-medium text-rose-600/80">
+                {currentQuestion + 1}/{questionsPerSet}
+              </span>
+            </div>
+            <div className="min-h-[160px] flex items-center">
+              <p className="text-xl text-rose-900 leading-relaxed">
+                {currentSetQuestions[currentQuestion]}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-between items-center">
-          <button
-            onClick={restart}
-            className="text-rose-600 hover:text-rose-700 flex items-center gap-2 transition-colors"
-          >
-            <RotateCcw className="w-4 h-4" />
-            Начать сначала
-          </button>
-          <button
-            onClick={handleNext}
-            className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-6 py-2.5 rounded-full flex items-center gap-2 shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-          >
-            {currentQuestion < questionsPerSet - 1 ? (
-              <>
-                Следующий вопрос
-                <ChevronRight className="w-4 h-4" />
-              </>
-            ) : (
-              'Завершить блок'
-            )}
-          </button>
+        <div>
+          <div className="text-xs text-rose-400/70 text-center mb-4">свайпните для навигации</div>
+          <div className="flex justify-between items-center">
+            <button
+              onClick={restart}
+              className="text-rose-600 hover:text-rose-700 flex items-center gap-2 transition-colors"
+            >
+              <RotateCcw className="w-4 h-4" />
+              Начать сначала
+            </button>
+            <button
+              onClick={handleNext}
+              className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-5 py-2 rounded-full flex items-center gap-1.5 shadow-md hover:shadow-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] text-base"
+            >
+              {currentQuestion < questionsPerSet - 1 ? (
+                <>
+                  Следующий
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </>
+              ) : (
+                'Завершить'
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
