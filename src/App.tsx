@@ -1,6 +1,5 @@
-import React, { useState, useEffect, useRef, TouchEvent } from 'react';
-import { Heart, Eye, ChevronRight, RotateCcw, ArrowLeft, ArrowRight } from 'lucide-react';
-import { CSSTransition, TransitionGroup } from 'react-transition-group';
+import React, { useState, useEffect, TouchEvent } from 'react';
+import { Heart, Eye, ChevronRight, RotateCcw } from 'lucide-react';
 import { questions } from './questions';
 
 // Определяем тип для Telegram WebApp
@@ -69,33 +68,6 @@ function App() {
   const [currentStory, setCurrentStory] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const [timerActive, setTimerActive] = useState(false);
-  const [timeRemaining, setTimeRemaining] = useState(240); // 4 минуты в секундах
-  const minSwipeDistance = 50;
-
-  // Таймер обратного отсчета
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    
-    if (timerActive && timeRemaining > 0) {
-      interval = setInterval(() => {
-        setTimeRemaining(prev => prev - 1);
-      }, 1000);
-    } else if (timeRemaining <= 0) {
-      setTimerActive(false);
-    }
-    
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [timerActive, timeRemaining]);
-  
-  // Функция для форматирования времени
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-  };
 
   // Инициализация Telegram Mini App
   useEffect(() => {
@@ -186,8 +158,6 @@ function App() {
     setCurrentSet(currentSet + 1);
     setCurrentQuestion(0);
     setShowEyeContact(false);
-    setTimeRemaining(240); // Сбрасываем таймер
-    setTimerActive(false);
   };
 
   const restart = () => {
@@ -197,8 +167,6 @@ function App() {
     setShowEyeContact(false);
     setShowFinalEyeContact(false);
     setCurrentStory(0);
-    setTimeRemaining(240); // Сбрасываем таймер
-    setTimerActive(false);
   };
 
   const nextStory = () => {
@@ -213,28 +181,30 @@ function App() {
     }
   };
 
-  // Обработчики для свайпа
-  const onTouchStart = (e: TouchEvent) => {
-    setTouchEnd(null);
+  // Обработчики свайпов
+  const handleTouchStart = (e: TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
 
-  const onTouchMove = (e: TouchEvent) => {
+  const handleTouchMove = (e: TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX);
   };
 
-  const onTouchEnd = () => {
+  const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
     const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    const minSwipeDistance = 50;
     
-    if (isLeftSwipe && currentStory < welcomeStories.length - 1) {
+    if (distance > minSwipeDistance) {
+      // Свайп влево - следующая история
       nextStory();
-    }
-    if (isRightSwipe && currentStory > 0) {
+    } else if (distance < -minSwipeDistance) {
+      // Свайп вправо - предыдущая история
       prevStory();
     }
+    
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   if (!isStarted) {
@@ -243,67 +213,30 @@ function App() {
         <div className="w-full max-w-[430px] relative">
           {/* Story card */}
           <div 
-            className="story-card backdrop-blur-sm rounded-3xl card-shadow overflow-hidden aspect-[9/16] relative"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
+            className="bg-white/95 backdrop-blur-sm rounded-3xl card-shadow overflow-hidden aspect-[9/16] relative"
+            onTouchStart={handleTouchStart}
+            onTouchMove={handleTouchMove}
+            onTouchEnd={handleTouchEnd}
           >
-            {/* Navigation buttons */}
-            <button
-              onClick={prevStory}
-              className={`absolute left-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 backdrop-blur-sm text-rose-500 shadow-lg transition-all hover:scale-105 active:scale-95 z-10 ${
-                currentStory === 0 ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:bg-rose-50'
-              }`}
-              disabled={currentStory === 0}
-            >
-              <ArrowLeft className="w-6 h-6" />
-            </button>
-            <button
-              onClick={nextStory}
-              className={`absolute right-4 top-1/2 -translate-y-1/2 p-2.5 rounded-full bg-white/90 backdrop-blur-sm text-rose-500 shadow-lg transition-all hover:scale-105 active:scale-95 z-10 ${
-                currentStory === welcomeStories.length - 1 ? 'opacity-0 pointer-events-none' : 'opacity-100 hover:bg-rose-50'
-              }`}
-              disabled={currentStory === welcomeStories.length - 1}
-            >
-              <ArrowRight className="w-6 h-6" />
-            </button>
-
             {/* Content */}
-            <div className="h-full flex flex-col justify-between p-8 relative">
-              {/* Декоративные элементы */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-rose-200/40 to-transparent rounded-bl-full -z-10"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-rose-200/40 to-transparent rounded-tr-full -z-10"></div>
-              
-              <TransitionGroup>
-                <CSSTransition
-                  key={currentStory}
-                  timeout={400}
-                  classNames="story-transition"
-                >
-                  <div className="flex flex-col items-center text-center mt-8">
-                    <div className="w-16 h-16 mb-6 rounded-full bg-rose-100/80 flex items-center justify-center">
-                      {currentStory === 0 && <Heart className="w-8 h-8 text-rose-500 fill-rose-500" />}
-                      {currentStory === 1 && <Eye className="w-8 h-8 text-rose-500" />}
-                      {currentStory === 2 && <ChevronRight className="w-8 h-8 text-rose-500" />}
-                    </div>
-                    <h2 className="text-2xl font-semibold text-rose-900 mb-6">
-                      {welcomeStories[currentStory].title}
-                    </h2>
-                    <p className="text-lg text-rose-800/90 mb-8 leading-relaxed">
-                      {welcomeStories[currentStory].text}
-                    </p>
+            <div className="h-full flex flex-col justify-between p-8">
+              <div className="flex flex-col items-center text-center mt-12">
+                <h2 className="text-2xl font-semibold text-rose-900 mb-6">
+                  {welcomeStories[currentStory].title}
+                </h2>
+                <p className="text-lg text-rose-800/90 mb-8 leading-relaxed">
+                  {welcomeStories[currentStory].text}
+                </p>
 
-                    {currentStory === welcomeStories.length - 1 && (
-                      <button
-                        onClick={() => setIsStarted(true)}
-                        className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
-                      >
-                        Готовы начать
-                      </button>
-                    )}
-                  </div>
-                </CSSTransition>
-              </TransitionGroup>
+                {currentStory === welcomeStories.length - 1 && (
+                  <button
+                    onClick={() => setIsStarted(true)}
+                    className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    Готовы начать
+                  </button>
+                )}
+              </div>
               
               <div className="w-full flex flex-col items-center">
                 {/* Heart icon with text */}
@@ -313,19 +246,25 @@ function App() {
                 </div>
                 <p className="text-sm text-rose-600/80 mb-5">36 вопросов, чтобы влюбить кого угодно</p>
                 
-                {/* Progress indicators moved to bottom */}
-                <div className="flex justify-center gap-2">
+                {/* Индикаторы прогресса в нижней части */}
+                <div className="flex justify-center gap-1.5 mb-3">
                   {welcomeStories.map((_, index) => (
                     <div
                       key={index}
-                      className={`h-1.5 rounded-full progress-indicator ${
-                        index === currentStory ? "active w-14" : 
-                        index < currentStory ? "w-14 bg-rose-300" : 
-                        "w-10 bg-rose-200"
+                      onClick={() => setCurrentStory(index)}
+                      className={`h-1 rounded-full transition-all duration-300 cursor-pointer ${
+                        index === currentStory 
+                          ? "w-12 bg-rose-400" 
+                          : index < currentStory 
+                            ? "w-12 bg-rose-300" 
+                            : "w-12 bg-rose-200"
                       }`}
                     />
                   ))}
                 </div>
+                
+                {/* Подсказка для свайпа */}
+                <p className="text-xs text-rose-400/70">свайпните для навигации</p>
               </div>
             </div>
           </div>
@@ -337,10 +276,8 @@ function App() {
   if (showEyeContact || showFinalEyeContact) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-        <div className="w-full max-w-[430px] story-card backdrop-blur-sm p-8 rounded-3xl card-shadow text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-rose-100/80 flex items-center justify-center">
-            <Eye className="w-10 h-10 text-rose-500" />
-          </div>
+        <div className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-8 rounded-3xl card-shadow text-center">
+          <Eye className="w-16 h-16 mx-auto mb-6 text-rose-500" />
           <h2 className="text-2xl sm:text-3xl font-bold mb-6 bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">
             {showFinalEyeContact ? "Финальный зрительный контакт" : "Время для зрительного контакта"}
           </h2>
@@ -349,38 +286,6 @@ function App() {
               ? "Поздравляем! Вы прошли все 36 вопросов. Теперь посмотрите друг другу в глаза в течение 4 минут, чтобы закрепить вашу связь."
               : "Посмотрите друг другу в глаза в течение 4 минут. Это поможет установить более глубокую связь."}
           </p>
-          
-          {/* Таймер */}
-          <div className="mb-8">
-            <div className="w-32 h-32 mx-auto rounded-full bg-rose-50 flex items-center justify-center mb-4 border-4 border-rose-100">
-              <span className="text-3xl font-bold text-rose-600">
-                {formatTime(timeRemaining)}
-              </span>
-            </div>
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => setTimerActive(!timerActive)}
-                className={`px-4 py-2 rounded-full font-medium ${
-                  timerActive 
-                    ? "bg-rose-100 text-rose-600" 
-                    : "bg-rose-500 text-white"
-                }`}
-              >
-                {timerActive ? "Пауза" : "Старт"}
-              </button>
-              <button
-                onClick={() => {
-                  setTimerActive(false);
-                  setTimeRemaining(240);
-                }}
-                className="px-4 py-2 rounded-full bg-rose-100 text-rose-600 font-medium"
-                disabled={!timerActive && timeRemaining === 240}
-              >
-                Сброс
-              </button>
-            </div>
-          </div>
-          
           <button
             onClick={showFinalEyeContact ? restart : handleNextSet}
             className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
@@ -394,41 +299,35 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-[430px] story-card backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow relative">
-        {/* Декоративные элементы */}
-        <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-rose-200/40 to-transparent rounded-bl-full z-0"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-rose-200/40 to-transparent rounded-tr-full z-0"></div>
-        
-        <div className="flex items-center justify-between mb-8 relative z-10">
+      <div className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <Heart className="w-7 h-7 text-rose-500 fill-rose-500" />
             <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
           </div>
-          <div className="px-3 py-1.5 rounded-full bg-rose-50 text-sm font-medium text-rose-600/80">
+          <div className="text-sm font-medium text-rose-600/80">
             Блок {currentSet + 1} из {totalSets}
           </div>
         </div>
 
-        <div className="mb-8 relative z-10">
+        <div className="mb-8">
           <div className="flex items-center gap-2 mb-4">
-            <div className="h-1.5 flex-1 rounded-full bg-rose-100">
+            <div className="h-1 flex-1 rounded-full bg-rose-100">
               <div 
-                className="h-full rounded-full bg-gradient-to-r from-rose-500 to-rose-400 transition-all duration-300 shadow-sm"
+                className="h-full rounded-full bg-rose-500 transition-all duration-300"
                 style={{ width: `${((currentQuestion + 1) / questionsPerSet) * 100}%` }}
               />
             </div>
-            <span className="text-sm font-medium text-rose-600/80 bg-rose-50 px-2 py-0.5 rounded-full">
+            <span className="text-sm font-medium text-rose-600/80">
               {currentQuestion + 1}/{questionsPerSet}
             </span>
           </div>
-          <div className="bg-white/70 backdrop-blur-sm p-5 rounded-xl shadow-sm">
-            <p className="text-xl text-rose-900 leading-relaxed">
-              {currentSetQuestions[currentQuestion]}
-            </p>
-          </div>
+          <p className="text-xl text-rose-900 leading-relaxed">
+            {currentSetQuestions[currentQuestion]}
+          </p>
         </div>
 
-        <div className="flex justify-between items-center relative z-10">
+        <div className="flex justify-between items-center">
           <button
             onClick={restart}
             className="text-rose-600 hover:text-rose-700 flex items-center gap-2 transition-colors"

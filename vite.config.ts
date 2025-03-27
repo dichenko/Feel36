@@ -20,7 +20,6 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     optimizeDeps: {
-      include: ['react-transition-group'],
       exclude: ['lucide-react'],
     },
     define: {
