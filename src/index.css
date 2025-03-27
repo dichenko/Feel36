@@ -48,3 +48,18 @@
   background: linear-gradient(to right, #f43f5e, #fb7185);
   box-shadow: 0 0 10px rgba(244, 63, 94, 0.3);
 }
+
+/* Медиа-запросы для мобильных устройств */
+@media (max-width: 640px) {
+  .story-card {
+    border-radius: 1.5rem;
+  }
+  
+  .story-transition-enter {
+    transform: translateX(30px);
+  }
+  
+  .story-transition-exit-active {
+    transform: translateX(-30px);
+  }
+}

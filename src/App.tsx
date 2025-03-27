@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, TouchEvent } from 'react';
 import { Heart, Eye, ChevronRight, RotateCcw, ArrowLeft, ArrowRight } from 'lucide-react';
 import { CSSTransition, TransitionGroup } from 'react-transition-group';
 import { questions } from './questions';
@@ -67,6 +67,35 @@ function App() {
   const [showEyeContact, setShowEyeContact] = useState(false);
   const [showFinalEyeContact, setShowFinalEyeContact] = useState(false);
   const [currentStory, setCurrentStory] = useState(0);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timeRemaining, setTimeRemaining] = useState(240); // 4 минуты в секундах
+  const minSwipeDistance = 50;
+
+  // Таймер обратного отсчета
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    if (timerActive && timeRemaining > 0) {
+      interval = setInterval(() => {
+        setTimeRemaining(prev => prev - 1);
+      }, 1000);
+    } else if (timeRemaining <= 0) {
+      setTimerActive(false);
+    }
+    
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [timerActive, timeRemaining]);
+  
+  // Функция для форматирования времени
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
 
   // Инициализация Telegram Mini App
   useEffect(() => {
@@ -157,6 +186,8 @@ function App() {
     setCurrentSet(currentSet + 1);
     setCurrentQuestion(0);
     setShowEyeContact(false);
+    setTimeRemaining(240); // Сбрасываем таймер
+    setTimerActive(false);
   };
 
   const restart = () => {
@@ -166,6 +197,8 @@ function App() {
     setShowEyeContact(false);
     setShowFinalEyeContact(false);
     setCurrentStory(0);
+    setTimeRemaining(240); // Сбрасываем таймер
+    setTimerActive(false);
   };
 
   const nextStory = () => {
@@ -180,12 +213,41 @@ function App() {
     }
   };
 
+  // Обработчики для свайпа
+  const onTouchStart = (e: TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    
+    if (isLeftSwipe && currentStory < welcomeStories.length - 1) {
+      nextStory();
+    }
+    if (isRightSwipe && currentStory > 0) {
+      prevStory();
+    }
+  };
+
   if (!isStarted) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
         <div className="w-full max-w-[430px] relative">
           {/* Story card */}
-          <div className="story-card backdrop-blur-sm rounded-3xl card-shadow overflow-hidden aspect-[9/16] relative">
+          <div 
+            className="story-card backdrop-blur-sm rounded-3xl card-shadow overflow-hidden aspect-[9/16] relative"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
             {/* Navigation buttons */}
             <button
               onClick={prevStory}
@@ -287,6 +349,38 @@ function App() {
               ? "Поздравляем! Вы прошли все 36 вопросов. Теперь посмотрите друг другу в глаза в течение 4 минут, чтобы закрепить вашу связь."
               : "Посмотрите друг другу в глаза в течение 4 минут. Это поможет установить более глубокую связь."}
           </p>
+          
+          {/* Таймер */}
+          <div className="mb-8">
+            <div className="w-32 h-32 mx-auto rounded-full bg-rose-50 flex items-center justify-center mb-4 border-4 border-rose-100">
+              <span className="text-3xl font-bold text-rose-600">
+                {formatTime(timeRemaining)}
+              </span>
+            </div>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setTimerActive(!timerActive)}
+                className={`px-4 py-2 rounded-full font-medium ${
+                  timerActive 
+                    ? "bg-rose-100 text-rose-600" 
+                    : "bg-rose-500 text-white"
+                }`}
+              >
+                {timerActive ? "Пауза" : "Старт"}
+              </button>
+              <button
+                onClick={() => {
+                  setTimerActive(false);
+                  setTimeRemaining(240);
+                }}
+                className="px-4 py-2 rounded-full bg-rose-100 text-rose-600 font-medium"
+                disabled={!timerActive && timeRemaining === 240}
+              >
+                Сброс
+              </button>
+            </div>
+          </div>
+          
           <button
             onClick={showFinalEyeContact ? restart : handleNextSet}
             className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
