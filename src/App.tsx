@@ -69,6 +69,39 @@ function App() {
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
+  // Загрузка сохраненного прогресса при первом рендере
+  useEffect(() => {
+    try {
+      const savedProgress = localStorage.getItem('feelme36_progress');
+      if (savedProgress) {
+        const progress = JSON.parse(savedProgress);
+        setIsStarted(progress.isStarted);
+        setCurrentSet(progress.currentSet);
+        setCurrentQuestion(progress.currentQuestion);
+        setShowEyeContact(progress.showEyeContact);
+        setShowFinalEyeContact(progress.showFinalEyeContact);
+      }
+    } catch (error) {
+      console.error('Ошибка при загрузке прогресса:', error);
+    }
+  }, []);
+
+  // Сохранение прогресса при изменении состояния
+  useEffect(() => {
+    try {
+      const progress = {
+        isStarted,
+        currentSet,
+        currentQuestion,
+        showEyeContact,
+        showFinalEyeContact
+      };
+      localStorage.setItem('feelme36_progress', JSON.stringify(progress));
+    } catch (error) {
+      console.error('Ошибка при сохранении прогресса:', error);
+    }
+  }, [isStarted, currentSet, currentQuestion, showEyeContact, showFinalEyeContact]);
+
   // Инициализация Telegram Mini App
   useEffect(() => {
     const tg = window.Telegram?.WebApp;
@@ -161,6 +194,13 @@ function App() {
   };
 
   const restart = () => {
+    // Удаляем сохраненный прогресс при перезапуске
+    try {
+      localStorage.removeItem('feelme36_progress');
+    } catch (error) {
+      console.error('Ошибка при удалении прогресса:', error);
+    }
+    
     setIsStarted(false);
     setCurrentSet(0);
     setCurrentQuestion(0);
