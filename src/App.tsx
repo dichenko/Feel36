@@ -162,8 +162,12 @@ function App() {
 
   const welcomeStories = [
     {
-      title: "Влюбиться за 45 минут",
-      text: "Перед вами набор из 36 вопросов, призванных сблизить вас и вашего партнера. Вопросы разбиты на три блока, с каждым блоком вопросы все более глубокие и откровенные. <a href='https://telegra.ph/36-voprosov-chtoby-vlyubitsya-03-27'>Всё по науке!</a>"
+      title: "Как влюбиться за 45 минут",
+      text: "Перед вами набор из 36 вопросов, призванных сблизить вас и вашего партнера. Вопросы разбиты на три блока, с каждым блоком вопросы все более глубокие и откровенные.",
+      link: {
+        text: "Всё по науке!",
+        url: "https://telegra.ph/36-voprosov-chtoby-vlyubitsya-03-27"
+      }
     },
     {
       title: "Выделите время",
@@ -298,6 +302,16 @@ function App() {
                 <p className="text-lg text-rose-800/90 mb-8 leading-relaxed">
                   {welcomeStories[currentStory].text}
                 </p>
+                {welcomeStories[currentStory].link && (
+                  <a 
+                    href={welcomeStories[currentStory].link?.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-rose-500 hover:text-rose-600 transition-colors text-lg font-medium"
+                  >
+                    {welcomeStories[currentStory].link?.text}
+                  </a>
+                )}
 
                 {currentStory === welcomeStories.length - 1 && (
                   <button
