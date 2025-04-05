@@ -162,8 +162,8 @@ function App() {
 
   const welcomeStories = [
     {
-      title: "Добро пожаловать в FeelMe36",
-      text: "Перед вами набор из 36 вопросов, призванных сблизить вас и вашего партнера. Вопросы разбиты на три блока, с каждым блоком вопросы все более глубокие и откровенные."
+      title: "Влюбиться за 45 минут",
+      text: "Перед вами набор из 36 вопросов, призванных сблизить вас и вашего партнера. Вопросы разбиты на три блока, с каждым блоком вопросы все более глубокие и откровенные. <a href='https://telegra.ph/36-voprosov-chtoby-vlyubitsya-03-27'>Всё по науке!</a>"
     },
     {
       title: "Выделите время",
@@ -304,7 +304,7 @@ function App() {
                     onClick={() => setIsStarted(true)}
                     className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    Готовы начать
+                    Начать
                   </button>
                 )}
               </div>
