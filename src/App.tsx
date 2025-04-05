@@ -329,7 +329,7 @@ function App() {
                   <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
                   <h1 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
                 </div>
-                <p className="text-sm text-rose-600/80 mb-5">36 вопросов, чтобы влюбить кого угодно</p>
+                {/* <p className="text-sm text-rose-600/80 mb-5">36 вопросов, чтобы влюбить кого угодно</p> */}
                 
                 {/* Индикаторы прогресса в нижней части */}
                 <div className="flex justify-center gap-1.5 mb-3">
