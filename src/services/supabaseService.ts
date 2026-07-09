@@ -13,6 +13,11 @@ export interface UserVisit {
   user_data: Record<string, any>;
 }
 
+export interface DailyRecord {
+  record_date: string;
+  recorded_at: string;
+}
+
 // Инициализация Supabase клиента через переменные окружения Vercel
 // Note: нам нужно использовать корректные переменные окружения, заданные в Vercel
 const getSupabaseConfig = () => {
@@ -389,6 +394,65 @@ export const saveVisitInfo = async (): Promise<void> => {
       }
     }
   }, 0); // Запускаем в следующем тике event loop
+};
+
+const getUtcDateString = (): string => new Date().toISOString().slice(0, 10);
+
+const hasDailyRecordCached = (date: string): boolean => {
+  try {
+    return localStorage.getItem(`daily_record_${date}`) === '1';
+  } catch {
+    return false;
+  }
+};
+
+const cacheDailyRecord = (date: string): void => {
+  try {
+    localStorage.setItem(`daily_record_${date}`, '1');
+  } catch {
+    // ignore storage errors
+  }
+};
+
+// Записывает одну строку в daily_records за календарный день (UTC)
+export const saveDailyRecord = async (): Promise<void> => {
+  if (!supabase) {
+    return;
+  }
+
+  const recordDate = getUtcDateString();
+
+  if (hasDailyRecordCached(recordDate)) {
+    return;
+  }
+
+  try {
+    const { data: existingRecord } = await supabase
+      .from('daily_records')
+      .select('id')
+      .eq('record_date', recordDate)
+      .maybeSingle();
+
+    if (existingRecord) {
+      cacheDailyRecord(recordDate);
+      return;
+    }
+
+    const dailyRecord: DailyRecord = {
+      record_date: recordDate,
+      recorded_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase
+      .from('daily_records')
+      .insert([dailyRecord]);
+
+    if (!error) {
+      cacheDailyRecord(recordDate);
+    }
+  } catch {
+    // ignore background save errors
+  }
 };
 
 // Функция для тестирования UTM-меток в режиме разработки

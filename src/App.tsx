@@ -1,6 +1,7 @@
 import React, { useState, useEffect, TouchEvent } from 'react';
 import { Heart, Eye, ChevronRight, RotateCcw } from 'lucide-react';
-import { questions } from './questions';
+import { useLocale } from './i18n';
+import { formatMessage } from './i18n/format';
 
 // Определяем тип для Telegram WebApp
 declare global {
@@ -62,6 +63,7 @@ declare global {
 }
 
 function App() {
+  const { t } = useLocale();
   const [isStarted, setIsStarted] = useState(false);
   const [currentSet, setCurrentSet] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
@@ -70,6 +72,9 @@ function App() {
   const [currentStory, setCurrentStory] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const welcomeStories = t.welcomeStories;
+  const questions = t.questions;
 
   // Загрузка сохраненного прогресса при первом рендере
   useEffect(() => {
@@ -159,25 +164,6 @@ function App() {
       }
     };
   }, []);
-
-  const welcomeStories = [
-    {
-      title: "Как влюбиться за 45 минут",
-      text: "Перед вами набор из 36 вопросов, призванных сблизить вас и вашего партнера. Вопросы разбиты на три блока, с каждым блоком вопросы все более глубокие и откровенные.",
-      link: {
-        text: "Всё по науке!",
-        url: "https://telegra.ph/36-voprosov-chtoby-vlyubitsya-03-27"
-      }
-    },
-    {
-      title: "Безопасная атмосфера",
-      text: "Организуйте время и место,где вас двоих никто не будет отвлекать. Отвечайте по очереди на каждый вопрос. "
-    },
-    {
-      title: "Зрительный контакт",
-      text: "Когда заканчивается блок вопросов, оставайтесь в тишине, и просто смотрите друг другу в глаза от 1 до 4 минут. Это усилит ощущение вашей близости."
-    }
-  ];
 
   const totalSets = 3;
   const questionsPerSet =  12;
@@ -318,7 +304,7 @@ function App() {
                     onClick={() => setIsStarted(true)}
                     className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98]"
                   >
-                    Начать
+                    {t.ui.start}
                   </button>
                 )}
               </div>
@@ -329,7 +315,6 @@ function App() {
                   <Heart className="w-5 h-5 text-rose-500 fill-rose-500" />
                   <h1 className="text-xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
                 </div>
-                {/* <p className="text-sm text-rose-600/80 mb-5">36 вопросов, чтобы влюбить кого угодно</p> */}
                 
                 {/* Индикаторы прогресса в нижней части */}
                 <div className="flex justify-center gap-1.5 mb-3">
@@ -349,7 +334,7 @@ function App() {
                 </div>
                 
                 {/* Подсказка для свайпа */}
-                <p className="text-xs text-rose-400/70">свайпните для навигации</p>
+                <p className="text-xs text-rose-400/70">{t.ui.swipeHint}</p>
               </div>
             </div>
           </div>
@@ -364,18 +349,16 @@ function App() {
         <div className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-8 rounded-3xl card-shadow text-center">
           <Eye className="w-16 h-16 mx-auto mb-6 text-rose-500" />
           <h2 className="text-2xl sm:text-3xl font-bold mb-6 bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">
-            {showFinalEyeContact ? "Финальный зрительный контакт" : "Время для зрительного контакта"}
+            {showFinalEyeContact ? t.ui.finalEyeContactTitle : t.ui.eyeContactTitle}
           </h2>
           <p className="text-lg text-rose-800/90 mb-8 leading-relaxed">
-            {showFinalEyeContact 
-              ? "Поздравляем! Вы прошли все 36 вопросов. Теперь посмотрите друг другу в глаза в течение 4 минут, чтобы закрепить вашу связь."
-              : "Посмотрите друг другу в глаза в течение 4 минут. Это поможет установить более глубокую связь."}
+            {showFinalEyeContact ? t.ui.finalEyeContactText : t.ui.eyeContactText}
           </p>
           <button
             onClick={showFinalEyeContact ? restart : handleNextSet}
             className="bg-gradient-to-r from-rose-500 to-rose-400 text-white px-8 py-3.5 rounded-full text-lg font-semibold shadow-lg hover:shadow-xl transition-all transform hover:scale-[1.02] active:scale-[0.98] mb-6"
           >
-            {showFinalEyeContact ? "Начать сначала" : "Перейти к следующему блоку"}
+            {showFinalEyeContact ? t.ui.startOver : t.ui.nextBlock}
           </button>
           
           {showFinalEyeContact && (
@@ -389,7 +372,7 @@ function App() {
                 }}
                 className="bg-white text-rose-500 border border-rose-300 px-8 py-3 rounded-full text-base font-medium shadow-sm hover:shadow-md transition-all transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                Обратная связь
+                {t.ui.feedback}
               </button>
               
               <button
@@ -401,7 +384,7 @@ function App() {
                 }}
                 className="text-xs text-rose-500/80 hover:text-rose-600 transition-colors"
               >
-                Узнать подробнее про 36 вопросов
+                {t.ui.learnMore}
               </button>
             </div>
           )}
@@ -425,7 +408,7 @@ function App() {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">FeelMe36</h1>
             </div>
             <div className="text-sm font-medium text-rose-600/80">
-              Блок {currentSet + 1} из {totalSets}
+              {formatMessage(t.ui.block, { current: currentSet + 1, total: totalSets })}
             </div>
           </div>
 
@@ -450,14 +433,14 @@ function App() {
         </div>
 
         <div>
-          <div className="text-xs text-rose-400/70 text-center mb-4">свайпните для навигации</div>
+          <div className="text-xs text-rose-400/70 text-center mb-4">{t.ui.swipeHint}</div>
           <div className="flex justify-between items-center">
             <button
               onClick={restart}
               className="text-rose-600 hover:text-rose-700 flex items-center gap-2 transition-colors"
             >
               <RotateCcw className="w-4 h-4" />
-              Начать сначала
+              {t.ui.startOver}
             </button>
             <button
               onClick={handleNext}
@@ -465,11 +448,11 @@ function App() {
             >
               {currentQuestion < questionsPerSet - 1 ? (
                 <>
-                  Следующий
+                  {t.ui.next}
                   <ChevronRight className="w-3.5 h-3.5" />
                 </>
               ) : (
-                'Завершить'
+                t.ui.finish
               )}
             </button>
           </div>

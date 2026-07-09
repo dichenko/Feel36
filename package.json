@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:supabase": "node scripts/test-supabase-connection.js"
+    "test:supabase": "node scripts/test-supabase-connection.js",
+    "db:migrate:daily-records": "node scripts/apply-daily-records-migration.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
@@ -32,6 +33,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
     "globals": "^17.6.0",
+    "pg": "^8.14.1",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.61.0"
   }

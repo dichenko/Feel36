@@ -2,7 +2,8 @@ import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
-import { saveVisitInfo, supabase, testUtmTracking, testStartapp } from './services/supabaseService';
+import { LocaleProvider } from './i18n';
+import { saveDailyRecord, saveVisitInfo, supabase, testUtmTracking, testStartapp } from './services/supabaseService';
 
 // Оболочка приложения с аналитикой
 const AppWithAnalytics = () => {
@@ -46,7 +47,7 @@ const AppWithAnalytics = () => {
     // Сохраняем информацию о визите в фоновом режиме
     const saveVisitInfoAsync = async () => {
       try {
-        await saveVisitInfo();
+        await Promise.all([saveVisitInfo(), saveDailyRecord()]);
       } catch (error) {
         // Игнорируем ошибки
       }
@@ -62,7 +63,11 @@ const AppWithAnalytics = () => {
   }, [telegramReady]);
   
   // Если WebApp не готов, можно показать лоадер или сразу приложение
-  return <App />;
+  return (
+    <LocaleProvider>
+      <App />
+    </LocaleProvider>
+  );
 };
 
 // Логируем информацию о Supabase в режиме разработки
