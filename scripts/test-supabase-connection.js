@@ -18,20 +18,6 @@ if (!supabaseUrl || !supabaseKey) {
   process.exit(1);
 }
 
-const expectedColumns = [
-  'id',
-  'tg_id',
-  'timestamp',
-  'utm_source',
-  'utm_medium',
-  'utm_campaign',
-  'utm_content',
-  'utm_term',
-  'visit_count',
-  'user_data',
-  'created_at',
-];
-
 const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: { persistSession: false },
 });
@@ -49,34 +35,8 @@ try {
     throw new Error(`daily_records check failed: ${dailyResult.error.message}`);
   }
 
-  // Inspect PostgREST's OpenAPI document instead of inserting and deleting a
-  // synthetic user_visits record.
-  const schemaResponse = await fetch(`${supabaseUrl}/rest/v1/`, {
-    headers: {
-      apikey: supabaseKey,
-      Authorization: `Bearer ${supabaseKey}`,
-    },
-    signal: AbortSignal.timeout(15_000),
-  });
-
-  if (!schemaResponse.ok) {
-    throw new Error(`PostgREST schema check failed: ${schemaResponse.status} ${schemaResponse.statusText}`);
-  }
-
-  const schema = await schemaResponse.json();
-  const visitDefinition = schema.definitions?.user_visits;
-  if (!visitDefinition) {
-    throw new Error('user_visits is not exposed to the anonymous PostgREST role');
-  }
-
-  const availableColumns = Object.keys(visitDefinition.properties ?? {});
-  const missingColumns = expectedColumns.filter(column => !availableColumns.includes(column));
-  if (missingColumns.length > 0) {
-    throw new Error(`user_visits is missing columns: ${missingColumns.join(', ')}`);
-  }
-
   console.log(`Supabase is reachable; daily_records contains ${dailyResult.count ?? 0} row(s).`);
-  console.log('user_visits schema contains all required columns.');
+  console.log('user_visits is intentionally not read by the anonymous role.');
 } catch (error) {
   console.error(error instanceof Error ? error.message : error);
   process.exitCode = 1;
