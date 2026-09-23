@@ -1,4 +1,4 @@
-export type AppLocale = 'en' | 'ru' | 'es' | 'ar' | 'tr';
+export type AppLocale = 'en' | 'ru' | 'es' | 'pt-BR' | 'id';
 
 export interface WelcomeStory {
   title: string;
@@ -23,6 +23,9 @@ export interface Translations {
     block: string;
     next: string;
     finish: string;
+    language: string;
+    chooseLanguage: string;
+    automaticLanguage: string;
   };
   questions: string[];
 }

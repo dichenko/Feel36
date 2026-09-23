@@ -36,6 +36,9 @@ export const ru: Translations = {
     block: 'Блок {{current}} из {{total}}',
     next: 'Следующий',
     finish: 'Завершить',
+    language: 'Язык',
+    chooseLanguage: 'Выберите язык',
+    automaticLanguage: 'Язык из профиля Telegram',
   },
   questions: [
     'Если бы мог(ла) выбрать любого человека в мире, кого бы ты пригласил(а) на ужин?',

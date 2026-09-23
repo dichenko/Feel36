@@ -1,6 +1,8 @@
 import { useState, useEffect, type TouchEvent } from 'react';
-import { Heart, Eye, ChevronRight, RotateCcw } from 'lucide-react';
+import { Heart, Eye, ChevronRight, RotateCcw, Globe2, Check } from 'lucide-react';
 import { useLocale } from './i18n/context';
+import { languageNames, SUPPORTED_LOCALES } from './i18n/detectLocale';
+import type { AppLocale } from './i18n/types';
 import { formatMessage } from './i18n/format';
 
 interface SavedProgress {
@@ -95,6 +97,47 @@ declare global {
       };
     };
   }
+}
+
+function LanguageSwitcher() {
+  const { locale, setLocale, t } = useLocale();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const selectLocale = (nextLocale: AppLocale) => {
+    setLocale(nextLocale);
+    setIsOpen(false);
+  };
+
+  return (
+    <div className="fixed right-4 top-4 z-30" dir="ltr">
+      <button
+        type="button"
+        aria-label={t.ui.language}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((open) => !open)}
+        className="flex h-10 w-10 items-center justify-center rounded-full border border-rose-200 bg-white/95 text-rose-600 shadow-md transition hover:bg-rose-50 active:scale-95"
+      >
+        <Globe2 className="h-5 w-5" />
+      </button>
+
+      {isOpen && (
+        <div className="absolute right-0 mt-2 w-60 overflow-hidden rounded-2xl border border-rose-100 bg-white py-2 shadow-xl">
+          <p className="px-4 pb-2 pt-1 text-sm font-semibold text-rose-900">{t.ui.chooseLanguage}</p>
+          {SUPPORTED_LOCALES.map((supportedLocale) => (
+            <button
+              key={supportedLocale}
+              type="button"
+              onClick={() => selectLocale(supportedLocale)}
+              className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-rose-800 transition hover:bg-rose-50"
+            >
+              <span>{languageNames[supportedLocale]}</span>
+              {locale === supportedLocale && <Check className="h-4 w-4 text-rose-500" aria-label="Selected" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function App() {
@@ -274,6 +317,7 @@ function App() {
   if (!isStarted) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+        <LanguageSwitcher />
         <div className="w-full max-w-[430px] relative">
           {/* Story card */}
           <div 
@@ -349,6 +393,7 @@ function App() {
   if (showEyeContact || showFinalEyeContact) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+        <LanguageSwitcher />
         <div className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-8 rounded-3xl card-shadow text-center">
           <Eye className="w-16 h-16 mx-auto mb-6 text-rose-500" />
           <h2 className="text-2xl sm:text-3xl font-bold mb-6 bg-gradient-to-r from-rose-600 to-rose-400 bg-clip-text text-transparent">
@@ -398,6 +443,7 @@ function App() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 sm:p-6">
+      <LanguageSwitcher />
       <div 
         className="w-full max-w-[430px] bg-white/95 backdrop-blur-sm p-6 sm:p-8 rounded-3xl card-shadow h-[520px] flex flex-col justify-between"
         onTouchStart={handleQuestionTouchStart}

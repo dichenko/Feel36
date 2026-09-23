@@ -36,6 +36,9 @@ export const en: Translations = {
     block: 'Set {{current}} of {{total}}',
     next: 'Next',
     finish: 'Finish',
+    language: 'Language',
+    chooseLanguage: 'Choose language',
+    automaticLanguage: 'Language from your Telegram profile',
   },
   questions: [
     'Given the choice of anyone in the world, whom would you want as a dinner guest?',

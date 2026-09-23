@@ -36,6 +36,9 @@ export const es: Translations = {
     block: 'Bloque {{current}} de {{total}}',
     next: 'Siguiente',
     finish: 'Finalizar',
+    language: 'Idioma',
+    chooseLanguage: 'Elige un idioma',
+    automaticLanguage: 'Idioma de tu perfil de Telegram',
   },
   questions: [
     'Si pudieras elegir a cualquier persona del mundo, ¿a quién invitarías a cenar?',
