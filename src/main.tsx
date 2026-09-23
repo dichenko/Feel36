@@ -3,10 +3,10 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
 import { LocaleProvider } from './i18n';
-import { saveDailyRecord, saveVisitInfo, supabase, testUtmTracking, testStartapp } from './services/supabaseService';
+import { saveDailyRecord, saveVisitInfo, supabase, testStartapp } from './services/supabaseService';
 
 // Оболочка приложения с аналитикой
-const AppWithAnalytics = () => {
+export const AppWithAnalytics = () => {
   // State для отслеживания готовности Telegram WebApp
   const [telegramReady, setTelegramReady] = useState(false);
   
@@ -48,7 +48,7 @@ const AppWithAnalytics = () => {
     const saveVisitInfoAsync = async () => {
       try {
         await Promise.all([saveVisitInfo(), saveDailyRecord()]);
-      } catch (error) {
+      } catch {
         // Игнорируем ошибки
       }
     };

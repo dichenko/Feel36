@@ -10,8 +10,11 @@ export interface UserVisit {
   utm_content?: string;
   utm_term?: string;
   visit_count: number;
-  user_data: Record<string, any>;
+  user_data: TelegramUserData;
 }
+
+type TelegramUserData = Record<string, unknown>;
+type TelegramInitDataUnsafe = Window['Telegram']['WebApp']['initDataUnsafe'];
 
 export interface DailyRecord {
   record_date: string;
@@ -170,14 +173,14 @@ export const getUtmParams = (): Record<string, string> => {
 };
 
 // Безопасное получение данных о пользователе из Telegram WebApp
-export const getTelegramUserData = (): Record<string, any> => {
+export const getTelegramUserData = (): TelegramUserData => {
   try {
     if (!window.Telegram?.WebApp) {
       return {};
     }
     
     const tg = window.Telegram.WebApp;
-    let userData: Record<string, any> = {};
+    let userData: TelegramUserData = {};
     
     // Безопасное получение initData
     const initDataStr = tg.initData || '';
@@ -191,7 +194,10 @@ export const getTelegramUserData = (): Record<string, any> => {
         const userStr = data.get('user');
         if (userStr) {
           try {
-            userData = JSON.parse(userStr);
+            const parsedUser: unknown = JSON.parse(userStr);
+            if (parsedUser && typeof parsedUser === 'object' && !Array.isArray(parsedUser)) {
+              userData = parsedUser as TelegramUserData;
+            }
           } catch {
             // Игнорируем ошибки парсинга
           }
@@ -225,10 +231,14 @@ export const getTelegramUserId = (): string => {
     const userData = getTelegramUserData();
     
     // Если ID пользователя не найден, попробуем использовать user.id, id или user_id (разные версии API могут возвращать разные форматы)
-    const userId = userData?.id?.toString() || 
-                  userData?.user?.id?.toString() || 
-                  userData?.user_id?.toString() || 
-                  '';
+    const nestedUser = userData.user;
+    const nestedUserId = nestedUser && typeof nestedUser === 'object' && 'id' in nestedUser
+      ? nestedUser.id
+      : undefined;
+    const userIdValue = userData.id ?? nestedUserId ?? userData.user_id;
+    const userId = typeof userIdValue === 'string' || typeof userIdValue === 'number'
+      ? userIdValue.toString()
+      : '';
                   
     // Если ID не найден, создадим временный ID на основе хеша initData
     if (!userId && window.Telegram?.WebApp?.initData) {
@@ -290,7 +300,7 @@ export const saveVisitInfo = async (): Promise<void> => {
       // Проверяем доступные параметры
       console.log('initData available:', !!window.Telegram.WebApp.initData);
       console.log('initDataUnsafe available:', !!window.Telegram.WebApp.initDataUnsafe);
-      console.log('startParams available:', !!(window.Telegram.WebApp as any).startParams);
+      console.log('startParams available:', !!window.Telegram.WebApp.startParams);
       
       // Логируем содержимое initDataUnsafe если доступно
       if (window.Telegram.WebApp.initDataUnsafe) {
@@ -298,7 +308,7 @@ export const saveVisitInfo = async (): Promise<void> => {
       }
       
       // Логируем startParams если доступно
-      const startParams = (window.Telegram.WebApp as any).startParams;
+      const startParams = window.Telegram.WebApp.startParams;
       if (startParams) {
         console.log('startParams value:', startParams);
       }
@@ -493,7 +503,7 @@ export const testStartapp = (startappValue: string): void => {
   // Сохраняем текущие параметры URL и Telegram WebApp
   const originalSearch = window.location.search;
   const originalHref = window.location.href;
-  let originalInitDataUnsafe: Record<string, any> | null = null;
+  let originalInitDataUnsafe: TelegramInitDataUnsafe | null = null;
   
   try {
     // Мокаем параметры в URL
@@ -589,4 +599,4 @@ export const testStartapp = (startappValue: string): void => {
     
     console.groupEnd();
   }
-}; 
+};

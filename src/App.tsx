@@ -1,7 +1,42 @@
-import React, { useState, useEffect, TouchEvent } from 'react';
+import { useState, useEffect, type TouchEvent } from 'react';
 import { Heart, Eye, ChevronRight, RotateCcw } from 'lucide-react';
-import { useLocale } from './i18n';
+import { useLocale } from './i18n/context';
 import { formatMessage } from './i18n/format';
+
+interface SavedProgress {
+  isStarted: boolean;
+  currentSet: number;
+  currentQuestion: number;
+  showEyeContact: boolean;
+  showFinalEyeContact: boolean;
+}
+
+const defaultProgress: SavedProgress = {
+  isStarted: false,
+  currentSet: 0,
+  currentQuestion: 0,
+  showEyeContact: false,
+  showFinalEyeContact: false,
+};
+
+const loadSavedProgress = (): SavedProgress => {
+  try {
+    const savedProgress = localStorage.getItem('feelme36_progress');
+    if (!savedProgress) return defaultProgress;
+
+    const progress = JSON.parse(savedProgress) as Partial<SavedProgress>;
+    return {
+      isStarted: progress.isStarted === true,
+      currentSet: typeof progress.currentSet === 'number' ? progress.currentSet : 0,
+      currentQuestion: typeof progress.currentQuestion === 'number' ? progress.currentQuestion : 0,
+      showEyeContact: progress.showEyeContact === true,
+      showFinalEyeContact: progress.showFinalEyeContact === true,
+    };
+  } catch (error) {
+    console.error('Ошибка при загрузке прогресса:', error);
+    return defaultProgress;
+  }
+};
 
 // Определяем тип для Telegram WebApp
 declare global {
@@ -64,50 +99,18 @@ declare global {
 
 function App() {
   const { t } = useLocale();
-  const [isStarted, setIsStarted] = useState(false);
-  const [currentSet, setCurrentSet] = useState(0);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [showEyeContact, setShowEyeContact] = useState(false);
-  const [showFinalEyeContact, setShowFinalEyeContact] = useState(false);
+  const [initialProgress] = useState(loadSavedProgress);
+  const [isStarted, setIsStarted] = useState(initialProgress.isStarted);
+  const [currentSet, setCurrentSet] = useState(initialProgress.currentSet);
+  const [currentQuestion, setCurrentQuestion] = useState(initialProgress.currentQuestion);
+  const [showEyeContact, setShowEyeContact] = useState(initialProgress.showEyeContact);
+  const [showFinalEyeContact, setShowFinalEyeContact] = useState(initialProgress.showFinalEyeContact);
   const [currentStory, setCurrentStory] = useState(0);
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
 
   const welcomeStories = t.welcomeStories;
   const questions = t.questions;
-
-  // Загрузка сохраненного прогресса при первом рендере
-  useEffect(() => {
-    try {
-      const savedProgress = localStorage.getItem('feelme36_progress');
-      if (savedProgress) {
-        const progress = JSON.parse(savedProgress);
-        setIsStarted(progress.isStarted);
-        setCurrentSet(progress.currentSet);
-        setCurrentQuestion(progress.currentQuestion);
-        setShowEyeContact(progress.showEyeContact);
-        setShowFinalEyeContact(progress.showFinalEyeContact);
-      }
-    } catch (error) {
-      console.error('Ошибка при загрузке прогресса:', error);
-    }
-  }, []);
-
-  // Проверка наличия сохраненного прогресса
-  const hasProgress = () => {
-    try {
-      return !!localStorage.getItem('feelme36_progress');
-    } catch {
-      return false;
-    }
-  };
-
-  // Пропуск stories при наличии прогресса
-  useEffect(() => {
-    if (hasProgress() && !isStarted) {
-      setIsStarted(true);
-    }
-  }, [isStarted]);
 
   // Сохранение прогресса при изменении состояния
   useEffect(() => {
@@ -151,7 +154,7 @@ function App() {
       tg.BackButton.onClick(() => {
         tg.close();
       });
-    } catch (error) {
+    } catch {
       // Игнорируем ошибки с BackButton
     }
 
@@ -159,7 +162,7 @@ function App() {
     return () => {
       try {
         tg.BackButton.onClick(() => {});
-      } catch (error) {
+      } catch {
         // Игнорируем ошибки с BackButton
       }
     };
