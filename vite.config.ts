@@ -3,19 +3,17 @@ import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // Загружаем env файлы в зависимости от режима (development/production)
+  // Support legacy Vercel variable names while exposing only values that are
+  // explicitly safe for the browser bundle.
   const env = loadEnv(mode, process.cwd(), '');
-
-  // Собираем все переменные Supabase из окружения
-  const vercelEnvVars = Object.keys(env)
-    .filter(key => 
-      key.includes('SUPABASE') || 
-      key.includes('NEXT_PUBLIC_SUPABASE')
-    )
-    .reduce<Record<string, string>>((obj, key) => {
-      obj[key] = env[key];
-      return obj;
-    }, {});
+  const supabaseUrl = env.VITE_SUPABASE_URL
+    || env.NEXT_PUBLIC_SUPABASE_URL
+    || env.SUPABASE_URL
+    || '';
+  const supabaseAnonKey = env.VITE_SUPABASE_ANON_KEY
+    || env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    || env.SUPABASE_ANON_KEY
+    || '';
 
   return {
     plugins: [react()],
@@ -23,15 +21,8 @@ export default defineConfig(({ mode }) => {
       exclude: ['lucide-react'],
     },
     define: {
-      // Делаем переменные окружения Vercel доступными через import.meta.env
-      ...vercelEnvVars && Object.keys(vercelEnvVars).length > 0
-        ? Object.fromEntries(
-            Object.entries(vercelEnvVars).map(([key, value]) => [
-              `import.meta.env.${key}`,
-              JSON.stringify(value)
-            ])
-          )
-        : {},
+      'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(supabaseUrl),
+      'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),
     },
     build: {
       outDir: 'dist',

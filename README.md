@@ -23,4 +23,21 @@ FeelMe36 - это интерактивное приложение, разраб�
 
 ## Деплой
 
-Приложение развернуто на Vercel и доступно по адресу: [FeelMe36](https://feelme36.vercel.app/) 
+Приложение развернуто на Vercel и доступно по адресу: [FeelMe36](https://feelme36.vercel.app/)
+
+## Supabase
+
+Браузерному приложению нужны только `VITE_SUPABASE_URL` и
+`VITE_SUPABASE_ANON_KEY`. Service-role и JWT secrets не должны попадать в
+Vite-переменные. Read-only проверка подключения:
+
+```bash
+npm run test:supabase
+```
+
+Для применения обеих идемпотентных миграций задайте
+`POSTGRES_URL_NON_POOLING` (или `POSTGRES_URL`) и выполните:
+
+```bash
+npm run db:migrate
+```

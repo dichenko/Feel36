@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 // Типы данных
 export interface UserVisit {
   tg_id: string;
-  timestamp: string;
   utm_source?: string;
   utm_medium?: string;
   utm_campaign?: string;
@@ -18,7 +17,6 @@ type TelegramInitDataUnsafe = Window['Telegram']['WebApp']['initDataUnsafe'];
 
 export interface DailyRecord {
   record_date: string;
-  recorded_at: string;
 }
 
 // Инициализация Supabase клиента через переменные окружения Vercel
@@ -31,21 +29,8 @@ const getSupabaseConfig = () => {
     console.log('Running in development mode');
   }
 
-  // В Vite можно получить доступ к переменным окружения из Vercel через import.meta.env
-  // Проверяем все возможные имена переменных окружения
-  const supabaseUrlOptions = [
-    import.meta.env.NEXT_PUBLIC_SUPABASE_URL,
-    import.meta.env.SUPABASE_URL
-  ];
-  
-  const supabaseKeyOptions = [
-    import.meta.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-    import.meta.env.SUPABASE_ANON_KEY
-  ];
-
-  // Используем первую найденную переменную
-  const supabaseUrl = supabaseUrlOptions.find(url => url) as string;
-  const supabaseKey = supabaseKeyOptions.find(key => key) as string;
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (isDevMode) {
     console.log('Supabase URL available:', !!supabaseUrl);
@@ -66,6 +51,10 @@ export const supabase = (supabaseUrl && supabaseKey)
       }
     })
   : null;
+
+if (!supabase && typeof console !== 'undefined') {
+  console.error('Supabase is not configured: public URL or anonymous key is missing.');
+}
 
 // Получение UTM-меток из URL
 export const getUtmParams = (): Record<string, string> => {
@@ -372,7 +361,6 @@ export const saveVisitInfo = async (): Promise<void> => {
       // Создаем объект для вставки в БД
       const visitData: UserVisit = {
         tg_id: tgId,
-        timestamp: new Date().toISOString(),
         visit_count: visitCount,
         user_data: userData,
         ...utmParams
@@ -388,20 +376,15 @@ export const saveVisitInfo = async (): Promise<void> => {
         .insert([visitData]);
         
       if (error) {
-        if (isDevMode) {
-          console.error('❌ Error saving visit info:', error);
-          console.groupEnd();
-        }
+        console.error('❌ Error saving visit info:', error.message);
+        if (isDevMode) console.groupEnd();
       } else if (isDevMode) {
         console.log('✅ Visit info saved successfully!');
         console.groupEnd();
       }
     } catch (error) {
-      // Игнорируем все ошибки при сохранении
-      if (isDevMode) {
-        console.error('❌ Failed to save visit info:', error);
-        console.groupEnd();
-      }
+      console.error('❌ Failed to save visit info:', error);
+      if (isDevMode) console.groupEnd();
     }
   }, 0); // Запускаем в следующем тике event loop
 };
@@ -437,11 +420,16 @@ export const saveDailyRecord = async (): Promise<void> => {
   }
 
   try {
-    const { data: existingRecord } = await supabase
+    const { data: existingRecord, error: selectError } = await supabase
       .from('daily_records')
       .select('id')
       .eq('record_date', recordDate)
       .maybeSingle();
+
+    if (selectError) {
+      console.error('Failed to check daily record:', selectError.message);
+      return;
+    }
 
     if (existingRecord) {
       cacheDailyRecord(recordDate);
@@ -450,18 +438,19 @@ export const saveDailyRecord = async (): Promise<void> => {
 
     const dailyRecord: DailyRecord = {
       record_date: recordDate,
-      recorded_at: new Date().toISOString(),
     };
 
     const { error } = await supabase
       .from('daily_records')
       .insert([dailyRecord]);
 
-    if (!error) {
+    if (!error || error.code === '23505') {
       cacheDailyRecord(recordDate);
+    } else {
+      console.error('Failed to save daily record:', error.message);
     }
-  } catch {
-    // ignore background save errors
+  } catch (error) {
+    console.error('Failed to save daily record:', error);
   }
 };
 

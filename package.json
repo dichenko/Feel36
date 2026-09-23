@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test:supabase": "node scripts/test-supabase-connection.js",
-    "db:migrate:daily-records": "node scripts/apply-daily-records-migration.js"
+    "db:migrate": "node scripts/apply-supabase-migrations.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.108.1",
